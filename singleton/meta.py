@@ -33,13 +33,14 @@ class SingletonMetaEager(type):
     """
     __instances = {}
 
-    def __init__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
         """
-        This method is called when the class is defined. It creates an instance
-        of the class and stores it in the __instances dictionary.
+        This method is called when the class is created. It creates a new
+        instance of the class and stores it in the __instances dictionary.
         """
-        super().__init__(*args, **kwargs)
-        cls.__instances[cls] = super().__call__(*args, **kwargs)
+        new_cls = super().__new__(cls, *args, **kwargs)
+        cls.__instances[new_cls] = super(SingletonMetaEager, new_cls).__call__()
+        return new_cls
 
     def __call__(cls, *args, **kwargs):
         """
