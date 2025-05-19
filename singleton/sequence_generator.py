@@ -31,10 +31,9 @@ class SequenceGeneratorLazy(metaclass=SingletonMetaLazy):
         """
         with self.__lock:  # Ensure thread safety
             # Increment the current number and return it
-            ret = self.current
             self.current += 1
-            return ret
-        
+            return self.current
+
 
 class SequenceGeneratorEager(metaclass=SingletonMetaEager):
     """
@@ -63,27 +62,29 @@ class SequenceGeneratorEager(metaclass=SingletonMetaEager):
         """
         with self.__lock:
             # Increment the current number and return it
-            ret = self.current
             self.current += 1
-            return ret
-        
-        
+            return self.current
+
+
 if __name__ == "__main__":
     # Example usage
     seq_gen = SequenceGeneratorLazy(start=10)
-    print(seq_gen.get_next_number())  # Output: 10
     print(seq_gen.get_next_number())  # Output: 11
+    print(seq_gen.get_next_number())  # Output: 12
 
-    seq_gen2 = SequenceGeneratorLazy()  # This is singleton, so it won't create a new instance and won't change the current value
+    # This is singleton, so it won't create a new instance and won't change the current value
+    seq_gen2 = SequenceGeneratorLazy()
     print(id(seq_gen) == id(seq_gen2))  # Output: True
-    print(seq_gen.get_next_number()) 
-    print(seq_gen.get_next_number())  
+    print(seq_gen.get_next_number())
+    print(seq_gen.get_next_number())
 
+    # Keyword argument is ignored because of eager instatiation - it should be passed in the metaclass
     seq_gen_eager = SequenceGeneratorEager(start=20)
-    print(seq_gen_eager.get_next_number())  # Output: 20
-    print(seq_gen_eager.get_next_number())  # Output: 21
+    print(seq_gen_eager.get_next_number())  # Output: 1
+    print(seq_gen_eager.get_next_number())  # Output: 2
 
-    seq_gen_eager2 = SequenceGeneratorEager() # This is singleton, so it won't create a new instance and won't change the current value
+    # This is singleton, so it won't create a new instance and won't reinitialize the current value
+    seq_gen_eager2 = SequenceGeneratorEager()
     print(id(seq_gen_eager) == id(seq_gen_eager2))  # Output: True
-    print(seq_gen_eager.get_next_number()) 
+    print(seq_gen_eager.get_next_number())
     print(seq_gen_eager.get_next_number())

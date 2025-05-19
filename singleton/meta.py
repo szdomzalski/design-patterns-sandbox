@@ -20,9 +20,9 @@ class SingletonMetaLazy(type):
         with cls.__lock:  # Ensure thread safety
             if cls not in cls.__instances:
                 cls.__instances[cls] = super().__call__(*args, **kwargs)
-        
+
         return cls.__instances[cls]
-    
+
 
 class SingletonMetaEager(type):
     """
