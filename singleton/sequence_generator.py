@@ -1,4 +1,5 @@
-from threading import Lock
+from abc import ABC, abstractmethod
+from threading import Lock, Thread
 
 from meta import SingletonMetaLazy, SingletonMetaEager
 
@@ -127,3 +128,29 @@ if __name__ == "__main__":
     print(id(seq_gen_eager) == id(seq_gen_eager2))  # Output: True
     print(seq_gen_eager.get_next_number())  # Output: 28
     print(seq_gen_eager.get_next_number())  # Output: 29
+
+    # Multithreading example
+    def generate_in_thead(sequence_generator: type[SequenceGeneratorLazy | SequenceGeneratorEager], idx: int) -> None:
+        """
+        This function generates a sequence of numbers in a separate thread.
+        :param sequence_generator: The class of the sequence generator.
+        :return: None
+        """
+        instance = sequence_generator()
+        for i in range(5):
+            print(f'Thread index: {idx}, Generator: {sequence_generator.__name__}, Iteration {i}: '
+                  f'{instance.get_next_number()}')
+
+    threads: list[Thread] = []
+    for i in range(2):
+        thread = Thread(target=generate_in_thead, args=(SequenceGeneratorLazy, i))
+        threads.append(thread)
+    for i in range(2):
+        thread = Thread(target=generate_in_thead, args=(SequenceGeneratorEager, 2 + i))
+        threads.append(thread)
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
