@@ -47,8 +47,9 @@ class SingletonMetaEager(type):
         # Both below calls are equivalent in effect
         # The first line uses method-wrapper to call the __call__ method of the parent class (type)
         # The seconde one uses the __call__ method of the parent class (type) directly - slot wrapper approach
-        # cls.__instances[new_cls] = super(SingletonMetaEager, new_cls).__call__(start=25)
-        cls.__instances[new_cls] = super().__call__(new_cls, start=25)
+        # Also - this is a place where to use the arguments passed to the class
+        # cls.__instances[new_cls] = super(SingletonMetaEager, new_cls).__call__()
+        cls.__instances[new_cls] = super().__call__(new_cls)
         return new_cls
 
     def __call__(cls, *args, **kwargs):

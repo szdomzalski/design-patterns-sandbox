@@ -1,3 +1,4 @@
 .designpatterns
 __pycache__
 .vscode
+*.log
