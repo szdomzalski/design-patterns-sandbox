@@ -1,0 +1,22 @@
+{
+    "contacts": [
+        {
+            "full_name": "John Doe",
+            "email": "john.doe@example.com",
+            "phone_number": "555-1234",
+            "is_friend": true
+        },
+        {
+            "full_name": "Jane Smith",
+            "email": "jane.smith@example.com",
+            "phone_number": "555-5678",
+            "is_friend": false
+        },
+        {
+            "full_name": "Darren Walker",
+            "email": "d.walker@example.com",
+            "phone_number": "555-9999",
+            "is_friend": true
+        }
+    ]
+}

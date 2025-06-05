@@ -1,0 +1,14 @@
+<contacts>
+    <contact>
+        <full_name>Patric Doe</full_name>
+        <email>patric.doe@example.com</email>
+        <phone_number>777-1234</phone_number>
+        <is_friend>true</is_friend>
+    </contact>
+    <contact>
+        <full_name>Alex Smith</full_name>
+        <email>alex.smith@example.com</email>
+        <phone_number>777-5678</phone_number>
+        <is_friend>false</is_friend>
+    </contact>
+</contacts>
