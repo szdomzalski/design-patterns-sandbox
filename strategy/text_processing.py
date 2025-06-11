@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from tkinter.tix import TEXT
 
 
 class Operation(ABC):
