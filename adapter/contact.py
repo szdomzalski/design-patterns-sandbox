@@ -76,6 +76,14 @@ class ContactsAdapter(ABC):
         '''
         pass
 
+    def data_format(self) -> str:
+        '''
+        Return the format of the data being adapted.
+        This method should be overridden in subclasses to return the specific data format.
+        :return: str: The format of the data (e.g., 'XML', 'JSON', 'CSV').
+        '''
+        return self.__class__.__name__.replace('ContactsAdapter', '')
+
 
 class XMLContactsAdapter(ContactsAdapter):
     '''Adapter for converting XML data into Contact objects.'''
@@ -179,34 +187,59 @@ class FileReader(Reader):
         with open(self.file_name, 'r') as f:
             return f.read()
 
-def print_contact_data(contacts_source: ContactsAdapter) -> None:
-    '''
-    Print the contact data from the provided ContactsAdapter.
-    :param contacts_source: An instance of ContactsAdapter that provides contact data.
-    :return: None
-    '''
-    for contact in contacts_source.get_contacts():
-        print(contact)
+
+class ContactsPrinter:
+    '''Class to print contact data from a ContactsAdapter.'''
+
+    def __init__(self, contacts_source: ContactsAdapter) -> None:
+        '''
+        Initialize the ContactsPrinter with a ContactsAdapter.
+        :param contacts_source: An instance of ContactsAdapter that provides contact data.
+        :return: None
+        '''
+        self.contacts_source = contacts_source
+
+    def change_contacts_source(self, contacts_source: ContactsAdapter) -> None:
+        '''
+        Change the contacts source to a new ContactsAdapter.
+        :param contacts_source: An instance of ContactsAdapter that provides contact data.
+        :return: None
+        '''
+        self.contacts_source = contacts_source
+
+    def print_contacts(self) -> None:
+        '''
+        Print the contact data from the provided ContactsAdapter.
+        :return: None
+        '''
+        print(f"\nContacts from: {self.contacts_source.data_format()}")
+        for contact in self.contacts_source.get_contacts():
+            print(contact)
+
 
 if __name__ == "__main__":
     # Get the directory where this script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    printer = ContactsPrinter(None)
 
     # Example usage with paths relative to script location
     xml_reader = FileReader(os.path.join(script_dir, 'data', 'contacts.xml'))
     # Create an XML adapter and convert the data to a list of Contact objects
     xml_adapter = XMLContactsAdapter(xml_reader)
     # Print the Contact objects
-    print_contact_data(xml_adapter)
+    printer.change_contacts_source(xml_adapter)
+    printer.print_contacts()
 
     json_reader = FileReader(os.path.join(script_dir, 'data', 'contacts.json'))
     # Create a JSON adapter and convert the data to a list of Contact objects
     json_adapter = JSONContactsAdapter(json_reader)
     # Print the Contact objects
-    print_contact_data(json_adapter)
+    printer.change_contacts_source(json_adapter)
+    printer.print_contacts()
 
     # Test CSV adapter
     csv_reader = FileReader(os.path.join(script_dir, 'data', 'contacts.csv'))
     csv_adapter = CSVContactsAdapter(csv_reader)
-    print("\nContacts from CSV:")
-    print_contact_data(csv_adapter)
+    printer.change_contacts_source(csv_adapter)
+    printer.print_contacts()
