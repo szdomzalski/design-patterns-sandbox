@@ -1,6 +1,12 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
+'''
+In fact, this example is not really the best fit for the State pattern,
+as the text editor's states are not really distinct states but rather formatting options (strategy pattern).
+However, for the sake of the exercise, I tried to implement it as a State pattern.
+'''
+
 
 class TextEditor:
     '''
@@ -29,7 +35,7 @@ class TextEditor:
         :return: None
         '''
         print("Applying bold formatting.")
-        self.__state = BoldState(self)
+        self.__state.apply_bold()
 
     def apply_italic(self) -> None:
         '''
@@ -37,7 +43,7 @@ class TextEditor:
         :return: None
         '''
         print("Applying italic formatting.")
-        self.__state = ItalicState(self)
+        self.__state.apply_italic()
 
     def apply_underline(self) -> None:
         '''
@@ -45,15 +51,24 @@ class TextEditor:
         :return: None
         '''
         print("Applying underline formatting.")
-        self.__state = UnderlineState(self)
+        self.__state.apply_underline()
 
-    def deapply_formatting(self) -> None:
+    def set_formatting(self, state: EditorState) -> None:
+        '''
+        Set the current formatting state of the editor.
+        :param state: The new state to set.
+        :return: None
+        '''
+        print(f"Setting editor state to {state.__class__.__name__}.")
+        self.__state = state
+
+    def reset_formatting(self) -> None:
         '''
         Reset the editor to the default state.
         :return: None
         '''
         print("Resetting to default state.")
-        self.__state = DefaultState(self)
+        self.__state.reset_formatting()
 
     def undo(self) -> None:
         '''
@@ -99,6 +114,34 @@ class EditorState(ABC):
         :return: The formatted text.
         '''
         pass
+
+    def apply_bold(self) -> None:
+        '''
+        Apply bold formatting to the text.
+        :return: None
+        '''
+        self.editor.set_formatting(BoldState(self.editor))
+
+    def apply_italic(self) -> None:
+        '''
+        Apply italic formatting to the text.
+        :return: None
+        '''
+        self.editor.set_formatting(ItalicState(self.editor))
+
+    def apply_underline(self) -> None:
+        '''
+        Apply underline formatting to the text.
+        :return: None
+        '''
+        self.editor.set_formatting(UnderlineState(self.editor))
+
+    def reset_formatting(self) -> None:
+        '''
+        Reset the editor to the default state.
+        :return: None
+        '''
+        self.editor.set_formatting(DefaultState(self.editor))
 
 
 class DefaultState(EditorState):
@@ -166,7 +209,7 @@ if __name__ == "__main__":
     editor.enter_text("This is underlined text.\n")
     editor.print_text()
 
-    editor.deapply_formatting()
+    editor.reset_formatting()
     editor.enter_text("Back to default state.\n")
     editor.print_text()
 
