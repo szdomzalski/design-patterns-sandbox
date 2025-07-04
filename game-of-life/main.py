@@ -4,14 +4,23 @@ from ui_director import UIDirector
 from ui_pygame_builder import PygameUIBuilder
 import pygame
 import os
-from config_loader import JSONConfigLoader
+import argparse
+from config_loader import ConfigLoaderFactory, ConfigLoaderFactoryError
 
 # Set a constant random seed for reproducibility
 np.random.seed(42)
 
-# Load UI config using the loader
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'ui_config.json')
-config_loader = JSONConfigLoader(CONFIG_PATH)
+# Parse command-line arguments for config path
+parser = argparse.ArgumentParser(description="Game of Life Application")
+parser.add_argument('--config', type=str, default=None, help='Path to configuration file (default: ./ui_config.json)')
+args = parser.parse_args()
+
+CONFIG_PATH = args.config if args.config else os.path.join(os.path.dirname(__file__), 'ui_config.json')
+try:
+    config_loader = ConfigLoaderFactory.create(CONFIG_PATH)
+except ConfigLoaderFactoryError as e:
+    print(f"Error: {e}")
+    exit(1)
 ui_config = config_loader.get_config()
 
 # For now, keep cell count fixed (can be made dynamic later)
