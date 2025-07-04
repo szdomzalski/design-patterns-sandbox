@@ -1,7 +1,7 @@
 {
   "window": {
     "width": 800,
-    "height": 600
+    "height": 800
   },
   "grid": {
     "width": 800,
@@ -14,7 +14,7 @@
       "width": 200,
       "height": 50,
       "x": 300,
-      "y": 540
+      "y": 640
     }
   ],
   "sliders": [
