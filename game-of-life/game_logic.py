@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
+from scipy.signal import convolve2d
+
 
 class GameOfLifeRuleset(ABC):
     '''
@@ -16,6 +18,7 @@ class GameOfLifeRuleset(ABC):
         '''
         pass
 
+
 class ClassicGameOfLife(GameOfLifeRuleset):
     '''
     Classic Game of Life ruleset implementation.
@@ -27,20 +30,10 @@ class ClassicGameOfLife(GameOfLifeRuleset):
         :param state: Current game state as a 2D numpy array.
         :return: Next generation as a 2D numpy array.
         '''
-        n_cells_x, n_cells_y = state.shape
-        new_state = np.copy(state)
-        for y in range(n_cells_y):
-            for x in range(n_cells_x):
-                n_neighbors = state[(x - 1) % n_cells_x, (y - 1) % n_cells_y] + \
-                              state[(x)     % n_cells_x, (y - 1) % n_cells_y] + \
-                              state[(x + 1) % n_cells_x, (y - 1) % n_cells_y] + \
-                              state[(x - 1) % n_cells_x, (y)     % n_cells_y] + \
-                              state[(x + 1) % n_cells_x, (y)     % n_cells_y] + \
-                              state[(x - 1) % n_cells_x, (y + 1) % n_cells_y] + \
-                              state[(x)     % n_cells_x, (y + 1) % n_cells_y] + \
-                              state[(x + 1) % n_cells_x, (y + 1) % n_cells_y]
-                if state[x, y] == 1 and (n_neighbors < 2 or n_neighbors > 3):
-                    new_state[x, y] = 0
-                elif state[x, y] == 0 and n_neighbors == 3:
-                    new_state[x, y] = 1
-        return new_state
+        kernel = np.array([[1, 1, 1],
+                          [1, 0, 1],
+                          [1, 1, 1]])
+        neighbors = convolve2d(state, kernel, mode='same', boundary='fill', fillvalue=0)
+        birth = (state == 0) & (neighbors == 3)
+        survive = (state == 1) & ((neighbors == 2) | (neighbors == 3))
+        return np.where(birth | survive, 1, 0)
