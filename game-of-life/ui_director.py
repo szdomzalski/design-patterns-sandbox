@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
+from config_loader import UIConfig
 
 
 class UIColor(Enum):
@@ -88,14 +89,18 @@ class UIDirector:
         '''
         self._builder = builder
 
-    def construct_ui(self, config: dict) -> UIObject:
+    def construct_ui(self, config: UIConfig, n_cells_x: int, n_cells_y: int) -> UIObject:
         '''
-        Construct the UI by issuing build commands to the builder based on the provided configuration.
-        :param config: A dictionary containing UI configuration parameters.
+        Construct the UI by issuing build commands to the builder based on the provided configuration and cell counts.
+        :param config: A UIConfig instance containing UI configuration parameters.
+        :param n_cells_x: Number of cells in the x direction.
+        :param n_cells_y: Number of cells in the y direction.
         :return: The constructed UIObject.
         '''
-        self._builder.build_window(config['width'], config['height'])
-        self._builder.build_grid(config['n_cells_x'], config['n_cells_y'], config['cell_width'], config['cell_height'])
-        for button in config['buttons']:
+        self._builder.build_window(config.width, config.height)
+        cell_width = config.grid_width // n_cells_x
+        cell_height = config.grid_height // n_cells_y
+        self._builder.build_grid(n_cells_x, n_cells_y, cell_width, cell_height)
+        for button in config.buttons:
             self._builder.build_button(*button)
         return self._builder.get_ui()

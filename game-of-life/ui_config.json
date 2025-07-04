@@ -1,0 +1,23 @@
+{
+  "window": {
+    "width": 800,
+    "height": 600
+  },
+  "grid": {
+    "width": 800,
+    "height": 600
+  },
+  "buttons": [
+    {
+      "name": "next",
+      "label": "Next Generation",
+      "width": 200,
+      "height": 50,
+      "x": 300,
+      "y": 540
+    }
+  ],
+  "sliders": [
+
+  ]
+}

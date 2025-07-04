@@ -3,34 +3,23 @@ from game_logic import ClassicGameOfLife
 from ui_director import UIDirector
 from ui_pygame_builder import PygameUIBuilder
 import pygame
+import os
+from config_loader import JSONConfigLoader
 
 # Set a constant random seed for reproducibility
 np.random.seed(42)
 
-# UI config
-grid_width, grid_height = 800, 600
-n_cells_x, n_cells_y = 40, 30
-cell_width = grid_width // n_cells_x
-cell_height = grid_height // n_cells_y
-button_width, button_height = 200, 50
-button_x, button_y = (grid_width - button_width) // 2, grid_height - button_height - 10
+# Load UI config using the loader
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'ui_config.json')
+config_loader = JSONConfigLoader(CONFIG_PATH)
+ui_config = config_loader.get_config()
 
-config = {
-    'width': grid_width,
-    'height': grid_height,
-    'n_cells_x': n_cells_x,
-    'n_cells_y': n_cells_y,
-    'cell_width': cell_width,
-    'cell_height': cell_height,
-    'buttons': [
-        ("next", "Next Generation", button_width, button_height, button_x, button_y),
-        # Add more buttons as needed: (name, label, width, height, x, y)
-    ]
-}
+# For now, keep cell count fixed (can be made dynamic later)
+n_cells_x, n_cells_y = 40, 30
 
 builder = PygameUIBuilder()
 director = UIDirector(builder)
-ui = director.construct_ui(config)
+ui = director.construct_ui(ui_config, n_cells_x, n_cells_y)
 
 game_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
 game_logic = ClassicGameOfLife()
