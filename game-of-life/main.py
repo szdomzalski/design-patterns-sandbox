@@ -36,9 +36,10 @@ game_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
 game_logic = ClassicGameOfLife()
 
 controller = GameController(game_logic, game_state)
+timer = TimerEventPublisher(interval_sec=0.1, step_sec=0.01)
+timer.attach(controller)
 
-with TimerEventPublisher(interval_sec=0.2) as timer:
-    timer.attach(controller)
+with timer:
     running = True
     while running:
         for event in pygame.event.get():
