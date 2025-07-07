@@ -6,6 +6,8 @@ import pygame
 import os
 import argparse
 from config_loader import ConfigLoaderFactory, ConfigLoaderFactoryError
+from event_handling import TimerEventPublisher
+from game_controller import GameController
 
 # Set a constant random seed for reproducibility
 np.random.seed(42)
@@ -33,22 +35,25 @@ ui = director.construct_ui(ui_config, n_cells_x, n_cells_y)
 game_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
 game_logic = ClassicGameOfLife()
 
-running = True
-while running:
-    ui.update(game_state)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            for name, (label, b_width, b_height, b_x, b_y) in ui.buttons.items():
-                if b_x <= event.pos[0] <= b_x + b_width and b_y <= event.pos[1] <= b_y + b_height:
-                    if name == "next":
-                        game_state = game_logic.next_generation(game_state)
-                    # Add more button actions here
-                    break
-            else:
-                n_cells_x, n_cells_y, cell_width, cell_height = ui.grid_params
-                x, y = event.pos[0] // cell_width, event.pos[1] // cell_height
-                game_state[x, y] = not game_state[x, y]
+controller = GameController(game_logic, game_state)
+
+with TimerEventPublisher(interval_sec=0.2) as timer:
+    timer.attach(controller)
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                for name, (label, b_width, b_height, b_x, b_y) in ui.buttons.items():
+                    if b_x <= event.pos[0] <= b_x + b_width and b_y <= event.pos[1] <= b_y + b_height:
+                        if name == "stop":
+                            timer.stop()
+                        # Add more button actions here
+                        break
+                # Only handle button clicks, do not break for non-button clicks
+        if controller.update_needed:
+            ui.update(controller.get_state())
+            controller.update_needed = False
 pygame.quit()
 

@@ -1,7 +1,9 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 import threading
 import time
 from typing import List
+
 
 class EventSubscriber(ABC):
     @abstractmethod
@@ -12,6 +14,7 @@ class EventSubscriber(ABC):
         '''
         pass
 
+
 class EventPublisher(ABC):
     def __init__(self) -> None:
         '''
@@ -20,10 +23,10 @@ class EventPublisher(ABC):
         '''
         self.subscribers: List[EventSubscriber] = []
 
-    def subscribe(self, subscriber: EventSubscriber) -> None:
+    def attach(self, subscriber: EventSubscriber) -> None:
         '''
-        Add a subscriber to the list.
-        :param subscriber: An instance of EventSubscriber.
+        Attach a subscriber to receive events.
+        :param subscriber: The EventSubscriber to attach.
         :return: None
         '''
         self.subscribers.append(subscriber)
@@ -36,6 +39,7 @@ class EventPublisher(ABC):
         for sub in self.subscribers:
             sub.on_event()
 
+
 class TimerEventPublisher(EventPublisher):
     def __init__(self, interval_sec: float, step_sec: float = 0.1) -> None:
         '''
@@ -45,9 +49,27 @@ class TimerEventPublisher(EventPublisher):
         :return: None
         '''
         super().__init__()
-        self.interval: float = interval_sec
-        self.step: float = step_sec
-        self.running: bool = False
+        self.interval = interval_sec
+        self.step = step_sec
+        self.running = False
+
+    def __enter__(self) -> TimerEventPublisher:
+        '''
+        Enter the runtime context related to this object. Starts the timer.
+        :return: self
+        '''
+        self.start()
+        return self
+
+    def __exit__(self, exc_type: type, exc_val: BaseException, exc_tb) -> None:
+        '''
+        Exit the runtime context and stop the timer.
+        :param exc_type: Exception type
+        :param exc_val: Exception value
+        :param exc_tb: Exception traceback
+        :return: None
+        '''
+        self.stop()
 
     def start(self) -> None:
         '''

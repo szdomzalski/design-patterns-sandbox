@@ -9,8 +9,8 @@
   },
   "buttons": [
     {
-      "name": "next",
-      "label": "Next Generation",
+      "name": "stop",
+      "label": "Stop",
       "width": 200,
       "height": 50,
       "x": 300,
