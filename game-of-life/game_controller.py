@@ -1,4 +1,6 @@
-from event_handling import EventSubscriber
+from __future__ import annotations
+from abc import ABC, abstractmethod
+from event_handling import EventPublisher, EventSubscriber
 from game_logic import GameOfLifeRuleset
 import numpy as np
 
@@ -12,15 +14,17 @@ class GameController(EventSubscriber):
         :return: None
         '''
         self.game_logic = game_logic
-        self.game_state = initial_state
+        self.board_state = initial_state
         self.update_needed = False
+        self.game_state: GameState = GameStopped()
 
-    def on_event(self) -> None:
+    def on_event(self, publisher: EventPublisher) -> None:
         '''
         Advance the simulation and set a flag for UI update.
+        :param publisher: The EventPublisher that triggered the event.
         :return: None
         '''
-        self.game_state = self.game_logic.next_generation(self.game_state)
+        self.board_state = self.game_logic.next_generation(self.board_state)
         self.update_needed = True
 
     def get_state(self) -> np.ndarray:
@@ -28,4 +32,24 @@ class GameController(EventSubscriber):
         Get the current game state.
         :return: The current game state as a numpy array.
         '''
-        return self.game_state
+        return self.board_state
+
+
+class GameState(ABC):
+    '''
+    Abstract base class (interface) for game operational state.
+    '''
+
+
+class GameStopped(GameState):
+    '''
+    Represents the stopped state of the game.
+    This state indicates that the game is not running.
+    '''
+
+
+class GameRunning(GameState):
+    '''
+    Represents the running state of the game.
+    This state indicates that the game is currently active and processing.
+    '''

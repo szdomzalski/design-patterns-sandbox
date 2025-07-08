@@ -1,7 +1,7 @@
 import numpy as np
 from game_logic import ClassicGameOfLife
-from ui_director import UIDirector
-from ui_pygame_builder import PygameUIBuilder
+from ui import UIDirector
+from ui_pygame import PygameUIBuilder
 import pygame
 import os
 import argparse
@@ -32,10 +32,10 @@ builder = PygameUIBuilder()
 director = UIDirector(builder)
 ui = director.construct_ui(ui_config, n_cells_x, n_cells_y)
 
-game_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
+board_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
 game_logic = ClassicGameOfLife()
 
-controller = GameController(game_logic, game_state)
+controller = GameController(game_logic, board_state)
 timer = TimerEventPublisher(interval_sec=0.1, step_sec=0.01)
 timer.attach(controller)
 
@@ -54,7 +54,7 @@ with timer:
                         break
                 # Only handle button clicks, do not break for non-button clicks
         if controller.update_needed:
-            ui.update(controller.get_state())
+            ui.render(controller.get_state())
             controller.update_needed = False
 pygame.quit()
 

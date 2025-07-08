@@ -7,15 +7,16 @@ from typing import List
 
 class EventSubscriber(ABC):
     @abstractmethod
-    def on_event(self) -> None:
+    def on_event(self, publisher: EventPublisher) -> None:
         '''
         Called by EventPublisher on each event.
+        :param publisher: The EventPublisher that triggered the event.
         :return: None
         '''
         pass
 
 
-class EventPublisher(ABC):
+class EventPublisher:
     def __init__(self) -> None:
         '''
         Initialize the EventPublisher with an empty list of subscribers.
@@ -37,7 +38,7 @@ class EventPublisher(ABC):
         :return: None
         '''
         for sub in self.subscribers:
-            sub.on_event()
+            sub.on_event(self)
 
 
 class TimerEventPublisher(EventPublisher):

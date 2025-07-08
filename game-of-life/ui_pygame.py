@@ -1,20 +1,20 @@
 import pygame
 import numpy as np
-from ui_director import UIBuilder, UIObject, UIColor
+from ui import UIBuilder, UI, UIColor
 from typing import Optional, Dict, Tuple
 
 
-class PygameUI(UIObject):
+class PygameUI(UI):
     def __init__(self, screen: pygame.Surface, grid_params: tuple,
                  buttons: Dict[str, Tuple[str, int, int, int, int]]) -> None:
         self.screen: pygame.Surface = screen
         self.grid_params: tuple = grid_params
         self.buttons: Dict[str, Tuple[str, int, int, int, int]] = buttons  # Dict[name, (label, width, height, x, y)]
 
-    def update(self, game_state: np.ndarray) -> None:
+    def render(self, board_state: np.ndarray) -> None:
         self.screen.fill(UIColor.WHITE.value)
         self._draw_grid()
-        self._draw_cells(game_state)
+        self._draw_cells(board_state)
         self._draw_buttons()
         pygame.display.flip()
 
@@ -25,12 +25,12 @@ class PygameUI(UIObject):
                 cell = pygame.Rect(x, y, cell_width, cell_height)
                 pygame.draw.rect(self.screen, UIColor.GRAY.value, cell, 1)
 
-    def _draw_cells(self, game_state: np.ndarray) -> None:
+    def _draw_cells(self, board_state: np.ndarray) -> None:
         n_cells_x, n_cells_y, cell_width, cell_height = self.grid_params
         for y in range(n_cells_y):
             for x in range(n_cells_x):
                 cell = pygame.Rect(x * cell_width, y * cell_height, cell_width, cell_height)
-                if game_state[x, y] == 1:
+                if board_state[x, y] == 1:
                     pygame.draw.rect(self.screen, UIColor.BLACK.value, cell)
 
     def _draw_buttons(self) -> None:

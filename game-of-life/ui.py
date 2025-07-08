@@ -14,15 +14,15 @@ class UIColor(Enum):
     GREEN = (0, 255, 0)
 
 
-class UIObject(ABC):
+class UI(ABC):
     '''
     Abstract base class for UI objects. Defines the interface for updating and drawing UI elements.
     '''
     @abstractmethod
-    def update(self, game_state: Any) -> None:
+    def render(self, board_state: Any) -> None:
         '''
         Redraw the UI according to the passed game state.
-        :param game_state: The current game state to render.
+        :param board_state: The current game state to render.
         :return: None
         '''
         pass
@@ -69,10 +69,10 @@ class UIBuilder(ABC):
         pass
 
     @abstractmethod
-    def get_ui(self) -> UIObject:
+    def get_ui(self) -> UI:
         '''
         Return the constructed UI object.
-        :return: An instance of UIObject.
+        :return: An instance of UI.
         '''
         pass
 
@@ -89,13 +89,13 @@ class UIDirector:
         '''
         self._builder = builder
 
-    def construct_ui(self, config: UIConfig, n_cells_x: int, n_cells_y: int) -> UIObject:
+    def construct_ui(self, config: UIConfig, n_cells_x: int, n_cells_y: int) -> UI:
         '''
         Construct the UI by issuing build commands to the builder based on the provided configuration and cell counts.
         :param config: A UIConfig instance containing UI configuration parameters.
         :param n_cells_x: Number of cells in the x direction.
         :param n_cells_y: Number of cells in the y direction.
-        :return: The constructed UIObject.
+        :return: The constructed UI.
         '''
         self._builder.build_window(config.width, config.height)
         cell_width = config.grid_width // n_cells_x
