@@ -41,10 +41,10 @@ class EventPublisher:
             sub.on_event(self)
 
 
-class TimerEventPublisher(EventPublisher):
+class Timer(EventPublisher):
     def __init__(self, interval_sec: float, step_sec: float = 0.1) -> None:
         '''
-        Initialize the TimerEventPublisher.
+        Initialize the Timer.
         :param interval_sec: The interval between events in seconds.
         :param step_sec: The mini-step sleep interval in seconds (default: 0.1).
         :return: None
@@ -54,7 +54,7 @@ class TimerEventPublisher(EventPublisher):
         self.step = step_sec
         self.running = False
 
-    def __enter__(self) -> TimerEventPublisher:
+    def __enter__(self) -> Timer:
         '''
         Enter the runtime context related to this object. Starts the timer.
         :return: self

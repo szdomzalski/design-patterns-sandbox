@@ -1,8 +1,11 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from event_handling import EventPublisher, EventSubscriber
-from game_logic import GameOfLifeRuleset
 import numpy as np
+import pygame
+
+from event_handling import EventPublisher, EventSubscriber, Timer
+from game_logic import GameOfLifeRuleset
+from ui import UI
 
 
 class GameController(EventSubscriber):
@@ -20,12 +23,16 @@ class GameController(EventSubscriber):
 
     def on_event(self, publisher: EventPublisher) -> None:
         '''
-        Advance the simulation and set a flag for UI update.
+        Handle events from various publishers using pattern matching.
         :param publisher: The EventPublisher that triggered the event.
         :return: None
         '''
-        self.board_state = self.game_logic.next_generation(self.board_state)
-        self.update_needed = True
+        match publisher:
+            case Timer():
+                self.board_state = self.game_logic.next_generation(self.board_state)
+                self.update_needed = True
+            case _:
+                pass
 
     def get_state(self) -> np.ndarray:
         '''
@@ -33,6 +40,36 @@ class GameController(EventSubscriber):
         :return: The current game state as a numpy array.
         '''
         return self.board_state
+
+    def run(self, ui: UI, timer: Timer) -> None:
+        '''
+        Run the main game loop, handling events and updating the UI.
+
+        :param ui: The UI object responsible for rendering the game state.
+        :param timer: The Timer object used to control the game timing.
+        :return: None
+        The loop continues running until a QUIT event is detected or the timer is stopped.
+        Handles mouse button events to interact with UI buttons.
+        Renders the UI when an update is needed.
+        '''
+        running = True
+        with timer:
+            while running:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        for name, (label, b_width, b_height, b_x, b_y) in ui.buttons.items():
+                            if b_x <= event.pos[0] <= b_x + b_width and b_y <= event.pos[1] <= b_y + b_height:
+                                if name == "stop":
+                                    timer.stop()
+                                # Add more button actions here
+                                break
+                        # Only handle button clicks, do not break for non-button clicks
+                if self.update_needed:
+                    ui.render(self.get_state())
+                    self.update_needed = False
+        pygame.quit()
 
 
 class GameState(ABC):
