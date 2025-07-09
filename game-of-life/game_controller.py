@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import re
 import numpy as np
 import pygame
 
@@ -19,7 +20,7 @@ class GameController(EventSubscriber):
         self.game_logic = game_logic
         self.board_state = initial_state
         self.update_needed = False
-        self.game_state: GameState = GameStopped()
+        self.game_state: GameState = GameRunning()
 
     def on_event(self, publisher: EventPublisher) -> None:
         '''
@@ -29,8 +30,8 @@ class GameController(EventSubscriber):
         '''
         match publisher:
             case Timer():
-                self.board_state = self.game_logic.next_generation(self.board_state)
-                self.update_needed = True
+                self.board_state, self.update_needed = self.game_state.handle_timer_tick(
+                    self.game_logic, self.board_state)
             case _:
                 pass
 
@@ -77,6 +78,10 @@ class GameState(ABC):
     Abstract base class (interface) for game operational state.
     '''
 
+    @abstractmethod
+    def handle_timer_tick(self, game_logic: GameOfLifeRuleset, board_state: np.ndarray) -> tuple[np.ndarray, bool]:
+        pass
+
 
 class GameStopped(GameState):
     '''
@@ -84,9 +89,15 @@ class GameStopped(GameState):
     This state indicates that the game is not running.
     '''
 
+    def handle_timer_tick(self, game_logic: GameOfLifeRuleset, board_state: np.ndarray) -> tuple[np.ndarray, bool]:
+        return board_state, False
+
 
 class GameRunning(GameState):
     '''
     Represents the running state of the game.
     This state indicates that the game is currently active and processing.
     '''
+
+    def handle_timer_tick(self, game_logic: GameOfLifeRuleset, board_state: np.ndarray) -> tuple[np.ndarray, bool]:
+        return game_logic.next_generation(board_state), True
