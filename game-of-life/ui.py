@@ -14,6 +14,41 @@ class UIColor(Enum):
     GREEN = (0, 255, 0)
 
 
+class UIWindow(ABC):
+    '''
+    Abstract base class for UI windows.
+    '''
+    @abstractmethod
+    def setup(self) -> None:
+        '''
+        Set up the UI window.
+        :return: None
+        '''
+        pass
+
+    @abstractmethod
+    def clear(self) -> None:
+        '''
+        Clear the UI window.
+        :return: None
+        '''
+        pass
+
+
+class UIElement(ABC):
+    '''
+    Abstract base class for UI elements.
+    '''
+    @abstractmethod
+    def draw(self, window: UIWindow) -> None:
+        '''
+        Draw the UI element on the screen.
+        :param window: The window to draw on.
+        :return: None
+        '''
+        pass
+
+
 class UI(ABC):
     '''
     Abstract base class for UI objects. Defines the interface for updating and drawing UI elements.
@@ -23,6 +58,14 @@ class UI(ABC):
         '''
         Redraw the UI according to the passed game state.
         :param board_state: The current game state to render.
+        :return: None
+        '''
+        pass
+
+    @abstractmethod
+    def run(self) -> None:
+        '''
+        Run the main event loop for the UI.
         :return: None
         '''
         pass

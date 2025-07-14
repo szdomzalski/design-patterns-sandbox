@@ -1,6 +1,5 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import re
 import numpy as np
 import pygame
 
@@ -10,17 +9,23 @@ from ui import UI
 
 
 class GameController(EventSubscriber):
-    def __init__(self, game_logic: GameOfLifeRuleset, initial_state: np.ndarray):
+    def __init__(self, timer: Timer, ui: UI, game_logic: GameOfLifeRuleset, initial_state: np.ndarray) -> None:
         '''
         Initialize the GameController.
+        :param timer: The Timer object used to control the game timing.
+        :param ui: The UI object responsible for rendering the game state.
         :param game_logic: The game logic (ruleset) to use (must implement GameOfLifeRuleset).
         :param initial_state: The initial game state as a numpy array.
         :return: None
         '''
         self.game_logic = game_logic
         self.board_state = initial_state
-        self.update_needed = False
+        self.ui_render_needed = False
         self.game_state: GameState = GameRunning()
+        self.ui = ui
+        self.ui.render(self.board_state)
+        self.timer = timer
+        self.timer.attach(self)
 
     def on_event(self, publisher: EventPublisher) -> None:
         '''
@@ -30,7 +35,7 @@ class GameController(EventSubscriber):
         '''
         match publisher:
             case Timer():
-                self.board_state, self.update_needed = self.game_state.handle_timer_tick(
+                self.board_state, self.ui_render_needed = self.game_state.handle_timer_tick(
                     self.game_logic, self.board_state)
             case _:
                 pass
@@ -42,11 +47,10 @@ class GameController(EventSubscriber):
         '''
         return self.board_state
 
-    def run(self, ui: UI, timer: Timer) -> None:
+    def run(self, timer: Timer) -> None:
         '''
         Run the main game loop, handling events and updating the UI.
 
-        :param ui: The UI object responsible for rendering the game state.
         :param timer: The Timer object used to control the game timing.
         :return: None
         The loop continues running until a QUIT event is detected or the timer is stopped.
@@ -56,20 +60,22 @@ class GameController(EventSubscriber):
         running = True
         with timer:
             while running:
+                self.ui.run()
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         running = False
                     if event.type == pygame.MOUSEBUTTONDOWN:
-                        for name, (label, b_width, b_height, b_x, b_y) in ui.buttons.items():
-                            if b_x <= event.pos[0] <= b_x + b_width and b_y <= event.pos[1] <= b_y + b_height:
-                                if name == "stop":
+                        for button in self.ui.buttons:
+                            if button.x <= event.pos[0] <= button.x + button.width \
+                                    and button.y <= event.pos[1] <= button.y + button.height:
+                                if button.name == "stop":
                                     timer.stop()
                                 # Add more button actions here
                                 break
                         # Only handle button clicks, do not break for non-button clicks
-                if self.update_needed:
-                    ui.render(self.get_state())
-                    self.update_needed = False
+                if self.ui_render_needed:
+                    self.ui.render(self.get_state())
+                    self.ui_render_needed = False
         pygame.quit()
 
 
