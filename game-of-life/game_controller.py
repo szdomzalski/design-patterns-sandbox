@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pygame
 
-from event_handling import EventPublisher, EventSubscriber, Timer
+from event_handling import Event, EventSubscriber, EventType, Timer
 from game_logic import GameOfLifeRuleset
 from singleton_subscriber_meta import SingletonSubscriberMeta
 from ui import UI
@@ -28,14 +28,14 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         self.timer = timer
         self.timer.attach(self)
 
-    def on_event(self, publisher: EventPublisher) -> None:
+    def notify(self, event: Event) -> None:
         '''
         Handle events from various publishers using pattern matching.
-        :param publisher: The EventPublisher that triggered the event.
+        :param event: The event to handle.
         :return: None
         '''
-        match publisher:
-            case Timer():
+        match event.event_type:
+            case EventType.TIMER_TICK:
                 self.board_state, self.ui_render_needed = self.game_state.handle_timer_tick(
                     self.game_logic, self.board_state)
             case _:

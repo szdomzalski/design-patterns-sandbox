@@ -1,16 +1,28 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from enum import Enum
 import threading
 import time
 from typing import List
 
 
+class EventType(Enum):
+    TIMER_TICK = 1
+
+
+@dataclass(frozen=True)
+class Event:
+    event_type: EventType
+    publisher: EventPublisher
+
+
 class EventSubscriber(ABC):
     @abstractmethod
-    def on_event(self, publisher: EventPublisher) -> None:
+    def notify(self, event: Event) -> None:
         '''
         Called by EventPublisher on each event.
-        :param publisher: The EventPublisher that triggered the event.
+        :param event: The event to handle.
         :return: None
         '''
         pass
@@ -32,13 +44,15 @@ class EventPublisher:
         '''
         self.subscribers.append(subscriber)
 
-    def notify(self) -> None:
+    def publish(self, event_type: EventType) -> None:
         '''
-        Notify all subscribers by calling their on_event method.
+        Publish the event to all subscribers by calling their notify method.
+        :param event_type: The type of event to publish.
         :return: None
         '''
+        event = Event(event_type, self)
         for sub in self.subscribers:
-            sub.on_event(self)
+            sub.notify(event)
 
 
 class Timer(EventPublisher):
@@ -89,7 +103,7 @@ class Timer(EventPublisher):
 
     def _run(self) -> None:
         '''
-        Internal method to run the timer and notify subscribers at each interval.
+        Internal method to run the timer and publish subscribers at each interval.
         :return: None
         '''
         last_time = time.perf_counter()
@@ -97,5 +111,5 @@ class Timer(EventPublisher):
             time.sleep(self.step)
             now = time.perf_counter()
             if now - last_time >= self.interval:
-                self.notify()
+                self.publish(EventType.TIMER_TICK)
                 last_time = now
