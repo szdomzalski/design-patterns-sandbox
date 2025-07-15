@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 from ui import UI, UIBuilder, UIColor, UIElement, UIWindow
-from typing import Optional, Dict, Tuple
+from typing import Optional
 
 # https://www.pygame.org/docs/ref/event.html#module-pygame.event
 

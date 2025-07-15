@@ -5,10 +5,11 @@ import pygame
 
 from event_handling import EventPublisher, EventSubscriber, Timer
 from game_logic import GameOfLifeRuleset
+from singleton_subscriber_meta import SingletonSubscriberMeta
 from ui import UI
 
 
-class GameController(EventSubscriber):
+class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
     def __init__(self, timer: Timer, ui: UI, game_logic: GameOfLifeRuleset, initial_state: np.ndarray) -> None:
         '''
         Initialize the GameController.
