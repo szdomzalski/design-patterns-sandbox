@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 from ui import UI, UIBuilder, UIColor, UIElement, UIWindow
-from typing import Optional
+from typing import Any, Optional
 
 # https://www.pygame.org/docs/ref/event.html#module-pygame.event
 
@@ -29,7 +29,7 @@ class PygameUIGrid(UIElement):
         self.cell_width = cell_width
         self.cell_height = cell_height
 
-    def draw(self, window: PygameUIWindow) -> None:
+    def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
         for y in range(0, self.n_cells_y * self.cell_height, self.cell_height):
             for x in range(0, self.n_cells_x * self.cell_width, self.cell_width):
                 cell = pygame.Rect(x, y, self.cell_width, self.cell_height)
@@ -45,7 +45,7 @@ class PygameUIButton(UIElement):
         self.x = x
         self.y = y
 
-    def draw(self, window: PygameUIWindow) -> None:
+    def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
         screen = window.get_surface()
         pygame.draw.rect(screen, UIColor.GREEN.value, (self.x, self.y, self.width, self.height))
         font = pygame.font.Font(None, 36)

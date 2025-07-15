@@ -40,10 +40,11 @@ class UIElement(ABC):
     Abstract base class for UI elements.
     '''
     @abstractmethod
-    def draw(self, window: UIWindow) -> None:
+    def draw(self, window: UIWindow, **kwargs: Any) -> None:
         '''
         Draw the UI element on the screen.
         :param window: The window to draw on.
+        :param kwargs: Additional keyword arguments required for dynamic drawing.
         :return: None
         '''
         pass
