@@ -30,10 +30,12 @@ class PygameUIGrid(UIElement):
         self.cell_height = cell_height
 
     def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
-        for y in range(0, self.n_cells_y * self.cell_height, self.cell_height):
-            for x in range(0, self.n_cells_x * self.cell_width, self.cell_width):
-                cell = pygame.Rect(x, y, self.cell_width, self.cell_height)
-                pygame.draw.rect(window.get_surface(), UIColor.GRAY.value, cell, 1)
+        board_state = kwargs.get('board_state', np.zeros((self.n_cells_x, self.n_cells_y)))
+        for (x, y), value in np.ndenumerate(board_state):
+            cell = pygame.Rect(x * self.cell_width, y * self.cell_height, self.cell_width, self.cell_height)
+            # In case of "living" cells, fill the cell with black, otherwise only draw the border (gray)
+            pygame.draw.rect(window.get_surface(), UIColor.BLACK.value if value else UIColor.GRAY.value, cell,
+                             width=1 - min(value, 1))
 
 
 class PygameUIButton(UIElement):
@@ -63,22 +65,13 @@ class PygameUI(UI):
 
     def render(self, board_state: np.ndarray) -> None:
         self.screen.clear()
-        self.grid.draw(self.screen)
+        self.grid.draw(self.screen, board_state=board_state)
         self._draw_buttons()
 
-        self._draw_cells(board_state)
         pygame.display.flip()
 
     def run(self) -> None:
         pass
-
-    def _draw_cells(self, board_state: np.ndarray) -> None:
-        for y in range(self.grid.n_cells_y):
-            for x in range(self.grid.n_cells_x):
-                cell = pygame.Rect(x * self.grid.cell_width, y * self.grid.cell_height, self.grid.cell_width,
-                                   self.grid.cell_height)
-                if board_state[x, y] == 1:
-                    pygame.draw.rect(self.screen.get_surface(), UIColor.BLACK.value, cell)
 
     def _draw_buttons(self) -> None:
         for button in self.buttons:
