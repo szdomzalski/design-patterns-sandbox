@@ -38,13 +38,6 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
             case _:
                 pass
 
-    def get_state(self) -> np.ndarray:
-        '''
-        Get the current game state.
-        :return: The current game state as a numpy array.
-        '''
-        return self.board_state
-
     def run(self) -> None:
         '''
         Run the main game loop, handling events and updating the UI.
@@ -70,7 +63,7 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
                             break
                     # Only handle button clicks, do not break for non-button clicks
             if self.ui_render_needed:
-                self.ui.render(self.get_state())
+                self.ui.render(self.board_state)
                 self.ui_render_needed = False
         pygame.quit()
 
