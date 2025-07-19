@@ -37,11 +37,13 @@ def main() -> None:
 
     board_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
     game_logic = ClassicGameOfLife()
+    game = GameController(ui, game_logic, board_state)
+
     timer = Timer(interval_sec=0.1, step_sec=0.01)
+    timer.attach(game)
 
-    game = GameController(timer, ui, game_logic, board_state)
-
-    game.run(timer)
+    with timer:
+        game.run()
 
 
 if __name__ == "__main__":

@@ -10,10 +10,9 @@ from ui import UI
 
 
 class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
-    def __init__(self, timer: Timer, ui: UI, game_logic: GameOfLifeRuleset, initial_state: np.ndarray) -> None:
+    def __init__(self, ui: UI, game_logic: GameOfLifeRuleset, initial_state: np.ndarray) -> None:
         '''
         Initialize the GameController.
-        :param timer: The Timer object used to control the game timing.
         :param ui: The UI object responsible for rendering the game state.
         :param game_logic: The game logic (ruleset) to use (must implement GameOfLifeRuleset).
         :param initial_state: The initial game state as a numpy array.
@@ -25,8 +24,6 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         self.game_state: GameState = GameRunning()
         self.ui = ui
         self.ui.render(self.board_state)
-        self.timer = timer
-        self.timer.attach(self)
 
     def notify(self, event: Event) -> None:
         '''
@@ -48,35 +45,33 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         '''
         return self.board_state
 
-    def run(self, timer: Timer) -> None:
+    def run(self) -> None:
         '''
         Run the main game loop, handling events and updating the UI.
-
-        :param timer: The Timer object used to control the game timing.
         :return: None
+
         The loop continues running until a QUIT event is detected or the timer is stopped.
         Handles mouse button events to interact with UI buttons.
         Renders the UI when an update is needed.
         '''
         running = True
-        with timer:
-            while running:
-                self.ui.run()
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        running = False
-                    if event.type == pygame.MOUSEBUTTONDOWN:
-                        for button in self.ui.buttons:
-                            if button.x <= event.pos[0] <= button.x + button.width \
-                                    and button.y <= event.pos[1] <= button.y + button.height:
-                                if button.name == "stop":
-                                    timer.stop()
-                                # Add more button actions here
-                                break
-                        # Only handle button clicks, do not break for non-button clicks
-                if self.ui_render_needed:
-                    self.ui.render(self.get_state())
-                    self.ui_render_needed = False
+        while running:
+            self.ui.run()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for button in self.ui.buttons:
+                        if button.x <= event.pos[0] <= button.x + button.width \
+                                and button.y <= event.pos[1] <= button.y + button.height:
+                            if button.name == "stop":
+                                self.game_state = GameStopped()
+                            # Add more button actions here
+                            break
+                    # Only handle button clicks, do not break for non-button clicks
+            if self.ui_render_needed:
+                self.ui.render(self.get_state())
+                self.ui_render_needed = False
         pygame.quit()
 
 
