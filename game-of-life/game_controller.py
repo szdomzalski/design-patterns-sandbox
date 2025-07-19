@@ -3,27 +3,49 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pygame
 
-from event_handling import Event, EventSubscriber, EventType, Timer
+from event_handling import Event, EventSubscriber, EventType
 from game_logic import GameOfLifeRuleset
 from singleton_subscriber_meta import SingletonSubscriberMeta
 from ui import UI
 
 
 class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
-    def __init__(self, ui: UI, game_logic: GameOfLifeRuleset, initial_state: np.ndarray) -> None:
+    def __init__(self) -> None:
         '''
-        Initialize the GameController.
-        :param ui: The UI object responsible for rendering the game state.
+        Initialize the GameController with empty game logic, board state, and UI. Set startup state to running.
+        :return: None
+        '''
+        self.game_logic = None
+        self.board_state = None
+        self.ui = None
+
+        self.ui_render_needed = False
+        self.game_state: GameState = GameRunning()
+
+
+    def set_board_state(self, state: np.ndarray) -> None:
+        '''
+        Set the current game state. This method should be used to set initial state of singleton.
+        :set board_state: The current game state to render.
+        :return: None
+        '''
+        self.board_state = state
+
+    def assign_game_logic(self, game_logic: GameOfLifeRuleset) -> None:
+        '''
+        Set the game logic (ruleset) to use.
         :param game_logic: The game logic (ruleset) to use (must implement GameOfLifeRuleset).
-        :param initial_state: The initial game state as a numpy array.
         :return: None
         '''
         self.game_logic = game_logic
-        self.board_state = initial_state
-        self.ui_render_needed = False
-        self.game_state: GameState = GameRunning()
+
+    def assign_ui(self, ui: UI) -> None:
+        '''
+        Set the UI object to use.
+        :param ui: The UI object to use.
+        :return: None
+        '''
         self.ui = ui
-        self.ui.render(self.board_state)
 
     def notify(self, event: Event) -> None:
         '''
@@ -48,6 +70,7 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         Renders the UI when an update is needed.
         '''
         running = True
+        self.ui.render(self.board_state)
         while running:
             self.ui.run()
             for event in pygame.event.get():

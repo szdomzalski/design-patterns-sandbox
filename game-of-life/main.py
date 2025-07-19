@@ -35,9 +35,13 @@ def main() -> None:
     director = UIDirector(builder)
     ui = director.construct_ui(ui_config, n_cells_x, n_cells_y)
 
-    board_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
+    initial_board_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
     game_logic = ClassicGameOfLife()
-    game = GameController(ui, game_logic, board_state)
+    
+    game = GameController()
+    game.set_board_state(initial_board_state)
+    game.assign_ui(ui)
+    game.assign_game_logic(game_logic)
 
     timer = Timer(interval_sec=0.1, step_sec=0.01)
     timer.attach(game)
