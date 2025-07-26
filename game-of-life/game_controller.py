@@ -19,6 +19,7 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         self.board_state = None
         self.ui = None
 
+        self.running = False
         self.ui_render_needed = False
         self.game_state: GameState = GameRunning()
 
@@ -57,6 +58,10 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
             case EventType.TIMER_TICK:
                 self.board_state, self.ui_render_needed = self.game_state.handle_timer_tick(
                     self.game_logic, self.board_state)
+            case EventType.UI_QUIT:
+                self.running = False
+            case EventType.UI_BUTTON_CLICK:
+                self.game_state = GameStopped()
             case _:
                 pass
 
@@ -69,25 +74,15 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         Handles mouse button events to interact with UI buttons.
         Renders the UI when an update is needed.
         '''
-        running = True
+        self.running = True
         self.ui.render(self.board_state)
-        while running:
+        while self.running:
             self.ui.run()
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    for button in self.ui.buttons:
-                        if button.x <= event.pos[0] <= button.x + button.width \
-                                and button.y <= event.pos[1] <= button.y + button.height:
-                            if button.name == "stop":
-                                self.game_state = GameStopped()
-                            # Add more button actions here
-                            break
-                    # Only handle button clicks, do not break for non-button clicks
             if self.ui_render_needed:
                 self.ui.render(self.board_state)
                 self.ui_render_needed = False
+
+        self.ui.close()
         pygame.quit()
 
 

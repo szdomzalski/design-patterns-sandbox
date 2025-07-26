@@ -9,7 +9,6 @@
   },
   "buttons": [
     {
-      "name": "stop",
       "label": "Stop",
       "width": 200,
       "height": 50,

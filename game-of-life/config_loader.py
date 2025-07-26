@@ -11,7 +11,7 @@ class UIConfig:
     height: int
     grid_width: int
     grid_height: int
-    buttons: List[Tuple[str, str, int, int, int, int]]
+    buttons: List[Tuple[str, int, int, int, int]]
 
 
 class ConfigLoader(ABC):
@@ -31,7 +31,7 @@ class JSONConfigLoader(ConfigLoader):
         grid = data['grid']
         buttons: List[Tuple[str, str, int, int, int, int]] = []
         for btn in data.get('buttons', []):
-            buttons.append((btn['name'], btn['label'], btn['width'], btn['height'], btn['x'], btn['y']))
+            buttons.append((btn['label'], btn['width'], btn['height'], btn['x'], btn['y']))
         return UIConfig(
             width=window['width'],
             height=window['height'],

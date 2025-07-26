@@ -9,6 +9,8 @@ from typing import List
 
 class EventType(Enum):
     TIMER_TICK = 1
+    UI_QUIT = 2
+    UI_BUTTON_CLICK = 3
 
 
 @dataclass(frozen=True)

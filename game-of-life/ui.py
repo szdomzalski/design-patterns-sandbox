@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
 from config_loader import UIConfig
+from event_handling import EventPublisher
 
 
 class UIColor(Enum):
@@ -35,7 +36,7 @@ class UIWindow(ABC):
         pass
 
 
-class UIElement(ABC):
+class UIElement(EventPublisher, ABC):
     '''
     Abstract base class for UI elements.
     '''
@@ -50,7 +51,7 @@ class UIElement(ABC):
         pass
 
 
-class UI(ABC):
+class UI(EventPublisher, ABC):
     '''
     Abstract base class for UI objects. Defines the interface for updating and drawing UI elements.
     '''
@@ -67,6 +68,14 @@ class UI(ABC):
     def run(self) -> None:
         '''
         Run the main event loop for the UI.
+        :return: None
+        '''
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        '''
+        Close the UI window.
         :return: None
         '''
         pass
@@ -99,10 +108,9 @@ class UIBuilder(ABC):
         pass
 
     @abstractmethod
-    def build_button(self, name: str, label: str, width: int, height: int, x: int, y: int) -> None:
+    def build_button(self, label: str, width: int, height: int, x: int, y: int) -> None:
         '''
         Build a button component for the UI.
-        :param name: The unique name of the button.
         :param label: The label text for the button.
         :param width: The width of the button.
         :param height: The height of the button.
