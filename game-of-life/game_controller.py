@@ -1,12 +1,16 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
-import pygame
+import threading
 
 from event_handling import Event, EventSubscriber, EventType
 from game_logic import GameOfLifeRuleset
 from singleton_subscriber_meta import SingletonSubscriberMeta
 from ui import UI
+
+
+tick_event = threading.Event()
+tick_event.clear()
 
 
 class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
@@ -20,8 +24,7 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         self.ui = None
 
         self.running = False
-        self.ui_render_needed = False
-        self.game_state: GameState = GameStopped()
+        self.game_state: GameState = GameStopped(self)
 
 
     def set_board_state(self, state: np.ndarray) -> None:
@@ -56,14 +59,13 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         '''
         match event.event_type:
             case EventType.TIMER_TICK:
-                self.board_state, self.ui_render_needed = self.game_state.handle_timer_tick(
-                    self.game_logic, self.board_state)
+                self.game_state.handle_timer_tick()
             case EventType.UI_QUIT:
                 self.running = False
             case EventType.UI_STOP:
-                self.game_state = GameStopped()
+                self.game_state = GameStopped(self)
             case EventType.UI_START:
-                self.game_state = GameRunning()
+                self.game_state = GameRunning(self)
             case _:
                 pass
 
@@ -79,22 +81,23 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
         self.running = True
         self.ui.render(self.board_state)
         while self.running:
+            tick_event.wait()
             self.ui.run()
-            if self.ui_render_needed:
-                self.ui.render(self.board_state)
-                self.ui_render_needed = False
+            self.ui.render(self.board_state)
+            tick_event.clear()
 
         self.ui.close()
-        pygame.quit()
 
 
 class GameState(ABC):
     '''
     Abstract base class (interface) for game operational state.
     '''
+    def __init__(self, game: GameController) -> None:
+        self.game = game
 
     @abstractmethod
-    def handle_timer_tick(self, game_logic: GameOfLifeRuleset, board_state: np.ndarray) -> tuple[np.ndarray, bool]:
+    def handle_timer_tick(self) -> None:
         pass
 
 
@@ -104,8 +107,8 @@ class GameStopped(GameState):
     This state indicates that the game is not running.
     '''
 
-    def handle_timer_tick(self, game_logic: GameOfLifeRuleset, board_state: np.ndarray) -> tuple[np.ndarray, bool]:
-        return board_state, False
+    def handle_timer_tick(self) -> None:
+        tick_event.set()
 
 
 class GameRunning(GameState):
@@ -114,5 +117,6 @@ class GameRunning(GameState):
     This state indicates that the game is currently active and processing.
     '''
 
-    def handle_timer_tick(self, game_logic: GameOfLifeRuleset, board_state: np.ndarray) -> tuple[np.ndarray, bool]:
-        return game_logic.next_generation(board_state), True
+    def handle_timer_tick(self) -> None:
+        self.game.board_state = self.game.game_logic.next_generation(self.game.board_state)
+        tick_event.set()
