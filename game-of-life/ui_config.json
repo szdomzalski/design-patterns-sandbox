@@ -12,8 +12,17 @@
       "label": "Stop",
       "width": 200,
       "height": 50,
-      "x": 300,
-      "y": 640
+      "x": 180,
+      "y": 640,
+      "event": "UI_STOP"
+    },
+    {
+      "label": "Start",
+      "width": 200,
+      "height": 50,
+      "x": 420,
+      "y": 640,
+      "event": "UI_START"
     }
   ],
   "sliders": [

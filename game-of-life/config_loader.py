@@ -4,6 +4,8 @@ from typing import List, Tuple, Type
 import json
 import os
 
+from event_handling import EventType
+
 
 @dataclass
 class UIConfig:
@@ -29,9 +31,9 @@ class JSONConfigLoader(ConfigLoader):
             data = json.load(f)
         window = data['window']
         grid = data['grid']
-        buttons: List[Tuple[str, str, int, int, int, int]] = []
+        buttons: List[Tuple[str, str, int, int, int, int, EventType]] = []
         for btn in data.get('buttons', []):
-            buttons.append((btn['label'], btn['width'], btn['height'], btn['x'], btn['y']))
+            buttons.append((btn['label'], btn['width'], btn['height'], btn['x'], btn['y'], EventType[btn['event']]))
         return UIConfig(
             width=window['width'],
             height=window['height'],

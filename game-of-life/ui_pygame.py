@@ -1,3 +1,4 @@
+from sched import Event
 import pygame
 import numpy as np
 from game_controller import GameController
@@ -42,13 +43,14 @@ class PygameUIGrid(UIElement):
 
 
 class PygameUIButton(UIElement):
-    def __init__(self, label: str, width: int, height: int, x: int, y: int) -> None:
+    def __init__(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
         super().__init__()
         self.label = label
         self.width = width
         self.height = height
         self.x = x
         self.y = y
+        self.event = event
         self.attach(GameController())
 
     def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
@@ -63,7 +65,7 @@ class PygameUIButton(UIElement):
         return self.x <= click_x <= self.x + self.width and self.y <= click_y <= self.y + self.height
 
     def on_click(self) -> None:
-        self.publish(EventType.UI_BUTTON_CLICK)
+        self.publish(self.event)
 
 
 class PygameUI(UI):
@@ -113,8 +115,8 @@ class PygameUIBuilder(UIBuilder):
     def build_grid(self, n_cells_x: int, n_cells_y: int, cell_width: int, cell_height: int) -> None:
         self.grid = PygameUIGrid(n_cells_x, n_cells_y, cell_width, cell_height)
 
-    def build_button(self, label: str, width: int, height: int, x: int, y: int) -> None:
-        self.buttons.append(PygameUIButton(label, width, height, x, y))
+    def build_button(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
+        self.buttons.append(PygameUIButton(label, width, height, x, y, event))
 
     def get_ui(self) -> PygameUI:
         return PygameUI(self.screen, self.grid, self.buttons)

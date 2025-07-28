@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
 from config_loader import UIConfig
-from event_handling import EventPublisher
+from event_handling import EventPublisher, EventType
 
 
 class UIColor(Enum):
@@ -108,7 +108,7 @@ class UIBuilder(ABC):
         pass
 
     @abstractmethod
-    def build_button(self, label: str, width: int, height: int, x: int, y: int) -> None:
+    def build_button(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
         '''
         Build a button component for the UI.
         :param label: The label text for the button.
@@ -116,6 +116,7 @@ class UIBuilder(ABC):
         :param height: The height of the button.
         :param x: The x-coordinate of the button.
         :param y: The y-coordinate of the button.
+        :param event: The event type associated with the button.
         :return: None
         '''
         pass

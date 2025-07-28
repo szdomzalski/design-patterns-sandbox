@@ -21,7 +21,7 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
 
         self.running = False
         self.ui_render_needed = False
-        self.game_state: GameState = GameRunning()
+        self.game_state: GameState = GameStopped()
 
 
     def set_board_state(self, state: np.ndarray) -> None:
@@ -60,8 +60,10 @@ class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
                     self.game_logic, self.board_state)
             case EventType.UI_QUIT:
                 self.running = False
-            case EventType.UI_BUTTON_CLICK:
+            case EventType.UI_STOP:
                 self.game_state = GameStopped()
+            case EventType.UI_START:
+                self.game_state = GameRunning()
             case _:
                 pass
 
