@@ -1,12 +1,9 @@
-from sched import Event
 import pygame
 import numpy as np
 from game_controller import GameController
 from event_handling import EventType
 from ui import UI, UIBuilder, UIColor, UIElement, UIWindow
 from typing import Any, Optional
-
-# https://www.pygame.org/docs/ref/event.html#module-pygame.event
 
 class PygameUIWindow(UIWindow):
     def __init__(self, width: int, height: int) -> None:
