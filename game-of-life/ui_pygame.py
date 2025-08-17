@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 from game_controller import GameController
-from event_handling import EventType
+from event_handling import EventType, EventPublisher
 from ui import UI, UIBuilder, UIColor, UIElement, UIWindow
 from typing import Any, Optional
 
@@ -52,7 +52,7 @@ class PygameUIButton(UIElement):
 
     def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
         screen = window.get_surface()
-        pygame.draw.rect(screen, UIColor.GREEN.value, (self.x, self.y, self.width, self.height))
+        pygame.draw.rect(screen, UIColor.LIGHT_GRAY.value, (self.x, self.y, self.width, self.height))
         font = pygame.font.Font(None, 36)
         text = font.render(self.label, True, UIColor.BLACK.value)
         text_rect = text.get_rect(center=(self.x + self.width // 2, self.y + self.height // 2))
@@ -65,19 +65,113 @@ class PygameUIButton(UIElement):
         self.publish(self.event)
 
 
+class PygameUISlider(UIElement):
+    def __init__(self, x: int, y: int, width: int, height: int,
+                 min_value: float, max_value: float,
+                 initial_value: float, event: EventType) -> None:
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.min_value = min_value
+        self.max_value = max_value
+        self.value = initial_value
+        self.event = event
+        self.is_dragging = False
+
+        # Calculate the initial handle position
+        self.handle_width = 20
+        self.handle_height = height + 10
+        self._update_handle_position()
+
+    def _update_handle_position(self) -> None:
+        """Updates the handle's x position based on the current value"""
+        value_range = self.max_value - self.min_value
+        value_ratio = (self.value - self.min_value) / value_range
+        self.handle_x = self.x + int(value_ratio * (self.width - self.handle_width))
+
+    def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
+        screen = window.get_surface()
+
+        # Draw the slider track
+        track_rect = pygame.Rect(self.x, self.y + (self.height // 2) - 2, self.width, 4)
+        pygame.draw.rect(screen, UIColor.GRAY.value, track_rect)
+
+        # Draw the handle
+        handle_rect = pygame.Rect(
+            self.handle_x,
+            self.y - (self.handle_height - self.height) // 2,
+            self.handle_width,
+            self.handle_height
+        )
+        pygame.draw.rect(screen, UIColor.LIGHT_GRAY.value, handle_rect)
+        pygame.draw.rect(screen, UIColor.BLACK.value, handle_rect, 1)  # Border
+
+        # Draw the value text
+        font = pygame.font.Font(None, 24)
+        value_text = font.render(f"{self.value:.1f}", True, UIColor.BLACK.value)
+        text_rect = value_text.get_rect(midtop=(self.x + self.width // 2, self.y + self.height + 5))
+        screen.blit(value_text, text_rect)
+
+    def is_clicked(self, click_x: int, click_y: int) -> bool:
+        """Check if the slider handle was clicked"""
+        return (self.handle_x <= click_x <= self.handle_x + self.handle_width and
+                self.y - (self.handle_height - self.height) // 2 <= click_y <=
+                self.y + self.height + (self.handle_height - self.height) // 2)
+
+    def start_dragging(self) -> None:
+        """Start dragging the slider handle"""
+        self.is_dragging = True
+
+    def stop_dragging(self) -> None:
+        """Stop dragging the slider handle"""
+        self.is_dragging = False
+
+    def update_drag(self, mouse_x: int) -> None:
+        """Update the slider value based on the current mouse position"""
+        if not self.is_dragging:
+            return
+
+        # Clamp mouse_x to the slider's bounds
+        mouse_x = max(self.x, min(mouse_x, self.x + self.width - self.handle_width))
+
+        # Calculate the new value based on position
+        position_ratio = (mouse_x - self.x) / (self.width - self.handle_width)
+        new_value = self.min_value + position_ratio * (self.max_value - self.min_value)
+
+        # Update the value and handle position
+        if new_value != self.value:
+            self.value = new_value
+            self.handle_x = mouse_x
+            self.publish(self.event)
+
+
 class PygameUI(UI):
-    def __init__(self, screen: PygameUIWindow, grid: PygameUIGrid, buttons: list[PygameUIButton]) -> None:
+    def __init__(self, screen: PygameUIWindow, grid: PygameUIGrid,
+                 buttons: list[PygameUIButton], sliders: list[PygameUISlider] = None) -> None:
         super().__init__()
         self.screen = screen
         self.screen.setup()
         self.grid = grid
         self.buttons = buttons
+        self.sliders = sliders or []
+
+    def get_speed_control(self) -> EventPublisher:
+        '''
+        Get the publisher that handles speed control events.
+        :return: An EventPublisher instance that publishes SPEED_CHANGE events
+        '''
+        for slider in self.sliders:
+            if slider.event == EventType.SPEED_CHANGE:
+                return slider
+        raise Exception("No speed control slider configured in UI")
 
     def render(self, board_state: np.ndarray) -> None:
         self.screen.clear()
         self.grid.draw(self.screen, board_state=board_state)
         self._draw_buttons()
-
+        self._draw_sliders()
         pygame.display.flip()
 
     def close(self) -> None:
@@ -89,15 +183,41 @@ class PygameUI(UI):
                 self.publish(EventType.UI_QUIT)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self._process_click(event)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self._process_mouse_up()
+            elif event.type == pygame.MOUSEMOTION:
+                self._process_mouse_motion(event)
 
     def _draw_buttons(self) -> None:
         for button in self.buttons:
              button.draw(self.screen)
 
+    def _draw_sliders(self) -> None:
+        for slider in self.sliders:
+            slider.draw(self.screen)
+
     def _process_click(self, event: pygame.event.Event) -> None:
+        # Handle button clicks
         for button in self.buttons:
             if button.is_clicked(event.pos[0], event.pos[1]):
                 button.on_click()
+                return
+
+        # Handle slider clicks
+        for slider in self.sliders:
+            if slider.is_clicked(event.pos[0], event.pos[1]):
+                slider.start_dragging()
+                return
+
+    def _process_mouse_up(self) -> None:
+        # Stop dragging any active sliders
+        for slider in self.sliders:
+            slider.stop_dragging()
+
+    def _process_mouse_motion(self, event: pygame.event.Event) -> None:
+        # Update any active slider drags
+        for slider in self.sliders:
+            slider.update_drag(event.pos[0])
 
 
 class PygameUIBuilder(UIBuilder):
@@ -105,6 +225,7 @@ class PygameUIBuilder(UIBuilder):
         self.screen: Optional[PygameUIWindow] = None
         self.grid: Optional[PygameUIGrid] = None
         self.buttons: list[PygameUIButton] = []
+        self.sliders: list[PygameUISlider] = []
 
     def build_window(self, width: int, height: int) -> None:
         self.screen = PygameUIWindow(width, height)
@@ -115,5 +236,9 @@ class PygameUIBuilder(UIBuilder):
     def build_button(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
         self.buttons.append(PygameUIButton(label, width, height, x, y, event))
 
+    def build_slider(self, x: int, y: int, width: int, height: int, min_value: float,
+                    max_value: float, initial_value: float, event: EventType) -> None:
+        self.sliders.append(PygameUISlider(x, y, width, height, min_value, max_value, initial_value, event))
+
     def get_ui(self) -> PygameUI:
-        return PygameUI(self.screen, self.grid, self.buttons)
+        return PygameUI(self.screen, self.grid, self.buttons, self.sliders)

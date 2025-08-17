@@ -13,6 +13,7 @@ class UIColor(Enum):
     BLACK = (0, 0, 0)
     GRAY = (128, 128, 128)
     GREEN = (0, 255, 0)
+    LIGHT_GRAY = (211, 211, 211)
 
 
 class UIWindow(ABC):
@@ -80,6 +81,14 @@ class UI(EventPublisher, ABC):
         '''
         pass
 
+    @abstractmethod
+    def get_speed_control(self) -> EventPublisher:
+        '''
+        Get the publisher that handles speed control events.
+        :return: An EventPublisher instance that publishes SPEED_CHANGE events
+        '''
+        pass
+
 
 class UIBuilder(ABC):
     '''
@@ -122,6 +131,23 @@ class UIBuilder(ABC):
         pass
 
     @abstractmethod
+    def build_slider(self, x: int, y: int, width: int, height: int, min_value: float,
+                    max_value: float, initial_value: float, event: EventType) -> None:
+        '''
+        Build a slider component for the UI.
+        :param x: The x-coordinate of the slider.
+        :param y: The y-coordinate of the slider.
+        :param width: The width of the slider.
+        :param height: The height of the slider.
+        :param min_value: The minimum value of the slider.
+        :param max_value: The maximum value of the slider.
+        :param initial_value: The initial value of the slider.
+        :param event: The event type associated with the slider.
+        :return: None
+        '''
+        pass
+
+    @abstractmethod
     def get_ui(self) -> UI:
         '''
         Return the constructed UI object.
@@ -156,4 +182,6 @@ class UIDirector:
         self._builder.build_grid(n_cells_x, n_cells_y, cell_width, cell_height)
         for button in config.buttons:
             self._builder.build_button(*button)
+        for slider in config.sliders:
+            self._builder.build_slider(*slider)
         return self._builder.get_ui()
