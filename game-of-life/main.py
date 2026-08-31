@@ -44,8 +44,12 @@ def main() -> None:
     game.assign_ui(ui)
     game.assign_game_logic(game_logic)
 
+    # Initialize timer with 10 updates per second (0.1s interval)
     timer = Timer(interval_sec=0.1, step_sec=0.01)
     timer.attach(game)
+
+    # Configure speed control with the speed control publisher from UI
+    timer.configure_speed_control(ui.get_speed_control())
 
     with timer:
         game.run()

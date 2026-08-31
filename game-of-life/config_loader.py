@@ -13,7 +13,8 @@ class UIConfig:
     height: int
     grid_width: int
     grid_height: int
-    buttons: List[Tuple[str, int, int, int, int]]
+    buttons: List[Tuple[str, int, int, int, int, EventType]]
+    sliders: List[Tuple[int, int, int, int, float, float, float, EventType]]
 
 
 class ConfigLoader(ABC):
@@ -31,15 +32,38 @@ class JSONConfigLoader(ConfigLoader):
             data = json.load(f)
         window = data['window']
         grid = data['grid']
-        buttons: List[Tuple[str, str, int, int, int, int, EventType]] = []
+
+        buttons: List[Tuple[str, int, int, int, int, EventType]] = []
         for btn in data.get('buttons', []):
-            buttons.append((btn['label'], btn['width'], btn['height'], btn['x'], btn['y'], EventType[btn['event']]))
+            buttons.append((
+                btn['label'],
+                btn['width'],
+                btn['height'],
+                btn['x'],
+                btn['y'],
+                EventType[btn['event']]
+            ))
+
+        sliders: List[Tuple[int, int, int, int, float, float, float, EventType]] = []
+        for slider in data.get('sliders', []):
+            sliders.append((
+                slider['x'],
+                slider['y'],
+                slider['width'],
+                slider['height'],
+                slider['min_value'],
+                slider['max_value'],
+                slider['initial_value'],
+                EventType[slider['event']]
+            ))
+
         return UIConfig(
             width=window['width'],
             height=window['height'],
             grid_width=grid['width'],
             grid_height=grid['height'],
-            buttons=buttons
+            buttons=buttons,
+            sliders=sliders
         )
 
 

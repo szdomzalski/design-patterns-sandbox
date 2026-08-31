@@ -12,6 +12,7 @@ class EventType(Enum):
     UI_QUIT = 2
     UI_STOP = 3
     UI_START = 4
+    SPEED_CHANGE = 5
 
 
 @dataclass(frozen=True)
@@ -58,7 +59,7 @@ class EventPublisher:
             sub.notify(event)
 
 
-class Timer(EventPublisher):
+class Timer(EventPublisher, EventSubscriber):
     def __init__(self, interval_sec: float, step_sec: float = 0.1) -> None:
         '''
         Initialize the Timer.
@@ -70,6 +71,26 @@ class Timer(EventPublisher):
         self.interval = interval_sec
         self.step = step_sec
         self.running = False
+
+    def configure_speed_control(self, speed_control: EventPublisher) -> None:
+        '''
+        Configure speed control by subscribing to a speed control publisher.
+        :param speed_control: The publisher that will emit SPEED_CHANGE events
+        :return: None
+        '''
+        speed_control.attach(self)
+
+    def notify(self, event: Event) -> None:
+        '''
+        Handle speed change events
+        :param event: The event to handle
+        :return: None
+        '''
+        if event.event_type == EventType.SPEED_CHANGE:
+            # Assuming the publisher is the slider and its value represents speed in updates per second
+            speed = event.publisher.value
+            if speed > 0:  # Prevent division by zero
+                self.interval = 1.0 / speed  # Convert speed (updates/sec) to interval (sec)
 
     def __enter__(self) -> Timer:
         '''
