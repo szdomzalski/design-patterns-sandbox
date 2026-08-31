@@ -16,15 +16,12 @@ from game_of_life.config_loader import (
 from game_of_life.event_handling import EventType
 
 
-GAME_OF_LIFE_DIR = Path(__file__).parents[2] / "game_of_life"
+CONFIG_DIR = Path(__file__).parents[2] / "game_of_life" / "config"
 
 
-def test_loads_existing_json_ui_configuration() -> None:
-    loader = ConfigLoaderFactory.create(str(GAME_OF_LIFE_DIR / "ui_config.json"))
-
-    config = loader.get_config()
-
-    assert config == UIConfig(
+def expected_config() -> UIConfig:
+    """Return the UI represented by every example configuration format."""
+    return UIConfig(
         window=WindowSpec(800, 800),
         grid=GridSpec(800, 600),
         buttons=(
@@ -35,6 +32,41 @@ def test_loads_existing_json_ui_configuration() -> None:
             SliderSpec(150, 740, 500, 20, 1.0, 50.0, 10.0, EventType.SPEED_CHANGE),
         ),
     )
+
+
+@pytest.mark.parametrize("file_name", [
+    "ui_config.json",
+    "ui_config.toml",
+    "ui_config.yaml",
+    "ui_config.xml",
+])
+def test_loaders_produce_equivalent_ui_configuration(file_name: str) -> None:
+    loader = ConfigLoaderFactory.create(str(CONFIG_DIR / file_name))
+
+    config = loader.get_config()
+
+    assert config == expected_config()
+
+
+def test_yml_extension_uses_yaml_loader(tmp_path: Path) -> None:
+    config_path = tmp_path / "ui_config.yml"
+    config_path.write_text((CONFIG_DIR / "ui_config.yaml").read_text())
+
+    assert ConfigLoaderFactory.create(str(config_path)).get_config() == expected_config()
+
+
+@pytest.mark.parametrize(("extension", "content"), [
+    (".json", "{"),
+    (".toml", "window = ["),
+    (".yaml", "window: ["),
+    (".xml", "<ui>"),
+])
+def test_loaders_report_malformed_sources(extension: str, content: str, tmp_path: Path) -> None:
+    config_path = tmp_path / f"invalid{extension}"
+    config_path.write_text(content)
+
+    with pytest.raises(ConfigError, match="Invalid configuration"):
+        ConfigLoaderFactory.create(str(config_path)).get_config()
 
 
 def test_rejects_unknown_event_name(tmp_path: Path) -> None:
@@ -90,4 +122,4 @@ def test_rejects_control_outside_window() -> None:
 
 def test_rejects_unsupported_config_format() -> None:
     with pytest.raises(ConfigLoaderFactoryError, match="Unsupported or missing config file extension"):
-        ConfigLoaderFactory.create("ui_config.toml")
+        ConfigLoaderFactory.create("ui_config.ini")

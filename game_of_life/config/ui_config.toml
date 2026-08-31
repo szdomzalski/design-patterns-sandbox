@@ -1,0 +1,33 @@
+[window]
+width = 800
+height = 800
+
+[grid]
+width = 800
+height = 600
+
+[[buttons]]
+label = "Stop"
+width = 200
+height = 50
+x = 180
+y = 640
+event = "UI_STOP"
+
+[[buttons]]
+label = "Start"
+width = 200
+height = 50
+x = 420
+y = 640
+event = "UI_START"
+
+[[sliders]]
+x = 150
+y = 740
+width = 500
+height = 20
+min_value = 1.0
+max_value = 50.0
+initial_value = 10.0
+event = "SPEED_CHANGE"

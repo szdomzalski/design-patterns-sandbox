@@ -1,8 +1,13 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Type
 import json
 import os
+import tomllib
+import xml.etree.ElementTree as ET
+
+import yaml
 
 from .event_handling import EventType
 
@@ -135,28 +140,14 @@ class UIConfig:
                 raise ConfigError("UI controls must fit inside the window")
 
 
-class ConfigLoader(ABC):
-    @abstractmethod
-    def get_config(self) -> UIConfig:
-        pass
-
-
-class JSONConfigLoader(ConfigLoader):
-    def __init__(self, path: str):
-        self._path = path
-
-    def get_config(self) -> UIConfig:
-        try:
-            with open(self._path, 'r') as config_file:
-                data = json.load(config_file)
-            return self._to_config(data)
-        except ConfigError:
-            raise
-        except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
-            raise ConfigError(f"Invalid configuration in '{self._path}': {error}") from error
+class UIConfigAdapter:
+    """Adapt a format-independent mapping to validated UI specifications."""
 
     @staticmethod
-    def _to_config(data: dict[str, Any]) -> UIConfig:
+    def from_mapping(data: Mapping[str, Any]) -> UIConfig:
+        """Convert parsed configuration data to a validated UIConfig."""
+        if not isinstance(data, Mapping):
+            raise ConfigError("configuration root must be a mapping")
         window = data['window']
         grid = data['grid']
         buttons = tuple(
@@ -166,7 +157,7 @@ class JSONConfigLoader(ConfigLoader):
                 height=button['height'],
                 x=button['x'],
                 y=button['y'],
-                event=JSONConfigLoader._event_type(button['event']),
+                event=UIConfigAdapter._event_type(button['event']),
             )
             for button in data.get('buttons', [])
         )
@@ -179,7 +170,7 @@ class JSONConfigLoader(ConfigLoader):
                 min_value=slider['min_value'],
                 max_value=slider['max_value'],
                 initial_value=slider['initial_value'],
-                event=JSONConfigLoader._event_type(slider['event']),
+                event=UIConfigAdapter._event_type(slider['event']),
             )
             for slider in data.get('sliders', [])
         )
@@ -192,10 +183,121 @@ class JSONConfigLoader(ConfigLoader):
 
     @staticmethod
     def _event_type(event_name: str) -> EventType:
+        """Convert a serialized event name to its EventType member."""
         try:
             return EventType[event_name]
         except (KeyError, TypeError) as error:
             raise ConfigError(f"Unknown event type: {event_name!r}") from error
+
+
+class ConfigLoader(ABC):
+    """Load one configuration syntax and adapt it to a validated UIConfig."""
+
+    def __init__(self, path: str) -> None:
+        self._path = path
+
+    def get_config(self) -> UIConfig:
+        """Read, parse, and adapt the configured source file."""
+        try:
+            return UIConfigAdapter.from_mapping(self._read_mapping())
+        except ConfigError:
+            raise
+        except (OSError, ET.ParseError, yaml.YAMLError, KeyError, TypeError, ValueError) as error:
+            raise ConfigError(f"Invalid configuration in '{self._path}': {error}") from error
+
+    @abstractmethod
+    def _read_mapping(self) -> Mapping[str, Any]:
+        """Parse the source format into the shared mapping representation."""
+        pass
+
+
+class JSONConfigLoader(ConfigLoader):
+    """Adapt a JSON configuration file to UI specifications."""
+
+    def _read_mapping(self) -> Mapping[str, Any]:
+        with open(self._path, 'r', encoding='utf-8') as config_file:
+            return json.load(config_file)
+
+
+class YAMLConfigLoader(ConfigLoader):
+    """Adapt a YAML configuration file to UI specifications."""
+
+    def _read_mapping(self) -> Mapping[str, Any]:
+        with open(self._path, 'r', encoding='utf-8') as config_file:
+            return yaml.safe_load(config_file)
+
+
+class TOMLConfigLoader(ConfigLoader):
+    """Adapt a TOML configuration file to UI specifications."""
+
+    def _read_mapping(self) -> Mapping[str, Any]:
+        with open(self._path, 'rb') as config_file:
+            return tomllib.load(config_file)
+
+
+class XMLConfigLoader(ConfigLoader):
+    """Adapt an XML configuration file to the shared mapping representation."""
+
+    _window_fields: Mapping[str, Callable[[str], Any]] = {
+        'width': int,
+        'height': int,
+    }
+    _button_fields: Mapping[str, Callable[[str], Any]] = {
+        'label': str,
+        'width': int,
+        'height': int,
+        'x': int,
+        'y': int,
+        'event': str,
+    }
+    _slider_fields: Mapping[str, Callable[[str], Any]] = {
+        'x': int,
+        'y': int,
+        'width': int,
+        'height': int,
+        'min_value': float,
+        'max_value': float,
+        'initial_value': float,
+        'event': str,
+    }
+
+    def _read_mapping(self) -> Mapping[str, Any]:
+        root = ET.parse(self._path).getroot()
+        if root.tag != 'ui':
+            raise ConfigError("XML configuration root must be <ui>")
+
+        window = self._required_child(root, 'window')
+        grid = self._required_child(root, 'grid')
+        return {
+            'window': self._convert_attributes(window, self._window_fields),
+            'grid': self._convert_attributes(grid, self._window_fields),
+            'buttons': [
+                self._convert_attributes(button, self._button_fields)
+                for button in root.findall('./buttons/button')
+            ],
+            'sliders': [
+                self._convert_attributes(slider, self._slider_fields)
+                for slider in root.findall('./sliders/slider')
+            ],
+        }
+
+    @staticmethod
+    def _required_child(root: ET.Element, tag: str) -> ET.Element:
+        """Return a required direct child or report the missing XML element."""
+        element = root.find(tag)
+        if element is None:
+            raise ConfigError(f"XML configuration requires <{tag}>")
+        return element
+
+    @staticmethod
+    def _convert_attributes(
+            element: ET.Element,
+            fields: Mapping[str, Callable[[str], Any]]) -> dict[str, Any]:
+        """Convert XML string attributes to the shared mapping value types."""
+        try:
+            return {name: convert(element.attrib[name]) for name, convert in fields.items()}
+        except (KeyError, ValueError) as error:
+            raise ConfigError(f"Invalid <{element.tag}> attributes: {error}") from error
 
 
 class ConfigLoaderFactoryError(ConfigError):
@@ -205,8 +307,10 @@ class ConfigLoaderFactoryError(ConfigError):
 class ConfigLoaderFactory:
     _loaders = {
         '.json': JSONConfigLoader,
-        # '.yaml': YAMLConfigLoader,  # To be implemented
-        # '.xml': XMLConfigLoader,    # To be implemented
+        '.toml': TOMLConfigLoader,
+        '.yaml': YAMLConfigLoader,
+        '.yml': YAMLConfigLoader,
+        '.xml': XMLConfigLoader,
     }
 
     @staticmethod

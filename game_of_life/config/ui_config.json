@@ -1,5 +1,4 @@
 {
-  "$schema": "./ui_config.schema.json",
   "window": {
     "width": 800,
     "height": 800

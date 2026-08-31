@@ -2,7 +2,7 @@ import argparse
 import os
 import numpy as np
 
-from .config_loader import ConfigLoaderFactory, ConfigLoaderFactoryError
+from .config_loader import ConfigError, ConfigLoaderFactory
 from .event_handling import SystemClock, Ticker
 from .game_controller import GameController
 from .game_logic import ClassicGameOfLife
@@ -18,16 +18,17 @@ def main() -> None:
     # Parse command-line arguments for config path
     parser = argparse.ArgumentParser(description="Game of Life Application")
     parser.add_argument('--config', type=str, default=None,
-                        help='Path to configuration file (default: ./ui_config.json)')
+                        help='Path to configuration file (default: bundled config/ui_config.json)')
     args = parser.parse_args()
 
-    CONFIG_PATH = args.config if args.config else os.path.join(os.path.dirname(__file__), 'ui_config.json')
+    CONFIG_PATH = args.config if args.config else os.path.join(
+        os.path.dirname(__file__), 'config', 'ui_config.json')
     try:
         config_loader = ConfigLoaderFactory.create(CONFIG_PATH)
-    except ConfigLoaderFactoryError as e:
+        ui_config = config_loader.get_config()
+    except ConfigError as e:
         print(f"Error: {e}")
         exit(1)
-    ui_config = config_loader.get_config()
 
     # For now, keep cell count fixed (can be made dynamic later)
     n_cells_x, n_cells_y = 40, 30
