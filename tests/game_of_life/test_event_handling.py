@@ -12,7 +12,7 @@ class RecordingSubscriber(EventSubscriber):
 def test_timer_converts_updates_per_second_to_interval() -> None:
     timer = Timer(interval_sec=0.1)
     speed_control = EventPublisher()
-    timer.configure_speed_control(speed_control)
+    speed_control.attach(timer)
 
     speed_control.publish(EventType.SPEED_CHANGE, 20.0)
 

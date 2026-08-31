@@ -81,14 +81,6 @@ class UI(EventPublisher, ABC):
         '''
         pass
 
-    @abstractmethod
-    def get_speed_control(self) -> EventPublisher:
-        '''
-        Get the publisher that handles speed control events.
-        :return: An EventPublisher instance that publishes SPEED_CHANGE events
-        '''
-        pass
-
 
 class UIBuilder(ABC):
     '''

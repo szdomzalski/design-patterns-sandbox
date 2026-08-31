@@ -84,14 +84,6 @@ class Timer(EventPublisher, EventSubscriber):
         self.step = step_sec
         self.running = False
 
-    def configure_speed_control(self, speed_control: EventPublisher) -> None:
-        '''
-        Configure speed control by subscribing to a speed control publisher.
-        :param speed_control: The publisher that will emit SPEED_CHANGE events
-        :return: None
-        '''
-        speed_control.attach(self)
-
     def notify(self, event: Event) -> None:
         '''
         Handle speed change events

@@ -2,8 +2,7 @@ import pygame
 import numpy as np
 from typing import Any, Optional
 
-from .event_handling import EventType, EventPublisher
-from .game_controller import GameController
+from .event_handling import Event, EventSubscriber, EventType
 from .ui import UI, UIBuilder, UIColor, UIElement, UIWindow
 
 class PygameUIWindow(UIWindow):
@@ -49,7 +48,6 @@ class PygameUIButton(UIElement):
         self.x = x
         self.y = y
         self.event = event
-        self.attach(GameController())
 
     def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
         screen = window.get_surface()
@@ -148,7 +146,7 @@ class PygameUISlider(UIElement):
             self.publish(self.event, self.value)
 
 
-class PygameUI(UI):
+class PygameUI(UI, EventSubscriber):
     def __init__(self, screen: PygameUIWindow, grid: PygameUIGrid,
                  buttons: list[PygameUIButton], sliders: list[PygameUISlider] = None) -> None:
         super().__init__()
@@ -157,16 +155,16 @@ class PygameUI(UI):
         self.grid = grid
         self.buttons = buttons
         self.sliders = sliders or []
+        for element in [*self.buttons, *self.sliders]:
+            element.attach(self)
 
-    def get_speed_control(self) -> EventPublisher:
+    def notify(self, event: Event) -> None:
         '''
-        Get the publisher that handles speed control events.
-        :return: An EventPublisher instance that publishes SPEED_CHANGE events
+        Forward events from child controls to subscribers of the complete UI.
+        :param event: The child control event to forward.
+        :return: None
         '''
-        for slider in self.sliders:
-            if slider.event == EventType.SPEED_CHANGE:
-                return slider
-        raise Exception("No speed control slider configured in UI")
+        self.publish(event.event_type, event.payload)
 
     def render(self, board_state: np.ndarray) -> None:
         self.screen.clear()

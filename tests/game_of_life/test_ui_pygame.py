@@ -1,5 +1,5 @@
 from game_of_life.event_handling import Event, EventSubscriber, EventType
-from game_of_life.ui_pygame import PygameUISlider
+from game_of_life.ui_pygame import PygameUIButton, PygameUI, PygameUIGrid, PygameUISlider, PygameUIWindow
 
 
 class RecordingSubscriber(EventSubscriber):
@@ -8,6 +8,42 @@ class RecordingSubscriber(EventSubscriber):
 
     def notify(self, event: Event) -> None:
         self.events.append(event)
+
+
+class WindowWithoutDisplay(PygameUIWindow):
+    def __init__(self) -> None:
+        super().__init__(width=1, height=1)
+
+    def setup(self) -> None:
+        pass
+
+
+def create_ui(
+        buttons: list[PygameUIButton] | None = None,
+        sliders: list[PygameUISlider] | None = None) -> PygameUI:
+    return PygameUI(
+        WindowWithoutDisplay(),
+        PygameUIGrid(n_cells_x=1, n_cells_y=1, cell_width=1, cell_height=1),
+        buttons or [],
+        sliders or [],
+    )
+
+
+def test_button_has_no_hidden_application_subscriber() -> None:
+    button = PygameUIButton("Start", 100, 20, 0, 0, EventType.UI_START)
+
+    assert button.subscribers == []
+
+
+def test_ui_forwards_events_from_its_controls() -> None:
+    button = PygameUIButton("Start", 100, 20, 0, 0, EventType.UI_START)
+    ui = create_ui(buttons=[button])
+    subscriber = RecordingSubscriber()
+    ui.attach(subscriber)
+
+    button.on_click()
+
+    assert subscriber.events == [Event(EventType.UI_START)]
 
 
 def test_slider_publishes_its_updated_value() -> None:
@@ -25,7 +61,8 @@ def test_slider_publishes_its_updated_value() -> None:
         event=EventType.SPEED_CHANGE,
     )
     subscriber = RecordingSubscriber()
-    slider.attach(subscriber)
+    ui = create_ui(sliders=[slider])
+    ui.attach(subscriber)
 
     slider.start_dragging()
     # x=40 is halfway through the 80 px travel, so the slider must publish 6.
