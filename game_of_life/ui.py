@@ -169,12 +169,27 @@ class UIDirector:
         :param n_cells_y: Number of cells in the y direction.
         :return: The constructed UI.
         '''
-        self._builder.build_window(config.width, config.height)
-        cell_width = config.grid_width // n_cells_x
-        cell_height = config.grid_height // n_cells_y
+        self._builder.build_window(config.window.width, config.window.height)
+        cell_width, cell_height = config.grid.cell_size(n_cells_x, n_cells_y)
         self._builder.build_grid(n_cells_x, n_cells_y, cell_width, cell_height)
         for button in config.buttons:
-            self._builder.build_button(*button)
+            self._builder.build_button(
+                button.label,
+                button.width,
+                button.height,
+                button.x,
+                button.y,
+                button.event,
+            )
         for slider in config.sliders:
-            self._builder.build_slider(*slider)
+            self._builder.build_slider(
+                slider.x,
+                slider.y,
+                slider.width,
+                slider.height,
+                slider.min_value,
+                slider.max_value,
+                slider.initial_value,
+                slider.event,
+            )
         return self._builder.get_ui()

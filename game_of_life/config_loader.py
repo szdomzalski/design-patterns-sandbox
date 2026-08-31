@@ -1,20 +1,138 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Tuple, Type
+from typing import Any, Type
 import json
 import os
 
 from .event_handling import EventType
 
 
-@dataclass
-class UIConfig:
+ALLOWED_BUTTON_EVENTS = frozenset({
+    EventType.UI_QUIT,
+    EventType.UI_STOP,
+    EventType.UI_START,
+})
+
+
+class ConfigError(Exception):
+    """Report invalid or unreadable application configuration."""
+
+
+def _require_positive_int(value: int, field_name: str) -> None:
+    """Require a non-Boolean integer greater than zero for a named field."""
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise ConfigError(f"{field_name} must be a positive integer")
+
+
+def _require_non_negative_int(value: int, field_name: str) -> None:
+    """Require a non-Boolean integer greater than or equal to zero for a named field."""
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ConfigError(f"{field_name} must be a non-negative integer")
+
+
+@dataclass(frozen=True)
+class WindowSpec:
+    """Describe the dimensions of the application window."""
+
     width: int
     height: int
-    grid_width: int
-    grid_height: int
-    buttons: List[Tuple[str, int, int, int, int, EventType]]
-    sliders: List[Tuple[int, int, int, int, float, float, float, EventType]]
+
+    def __post_init__(self) -> None:
+        """Validate dimensions immediately after dataclass initialization."""
+        # A dataclass-generated __init__ calls __post_init__ automatically
+        # after assigning fields. Raising here prevents an invalid frozen spec
+        # from ever being returned to the caller.
+        _require_positive_int(self.width, "window.width")
+        _require_positive_int(self.height, "window.height")
+
+
+@dataclass(frozen=True)
+class GridSpec:
+    """Describe the pixel dimensions of the simulation grid."""
+
+    width: int
+    height: int
+
+    def __post_init__(self) -> None:
+        """Validate grid dimensions after dataclass field assignment."""
+        _require_positive_int(self.width, "grid.width")
+        _require_positive_int(self.height, "grid.height")
+
+    def cell_size(self, n_cells_x: int, n_cells_y: int) -> tuple[int, int]:
+        """Return exact cell dimensions for the requested board shape."""
+        _require_positive_int(n_cells_x, "n_cells_x")
+        _require_positive_int(n_cells_y, "n_cells_y")
+        if self.width % n_cells_x != 0 or self.height % n_cells_y != 0:
+            raise ConfigError("grid dimensions must be divisible by board dimensions")
+        return self.width // n_cells_x, self.height // n_cells_y
+
+
+@dataclass(frozen=True)
+class ButtonSpec:
+    """Describe a button and the application event it publishes."""
+
+    label: str
+    width: int
+    height: int
+    x: int
+    y: int
+    event: EventType
+
+    def __post_init__(self) -> None:
+        """Validate button content, geometry, and event after initialization."""
+        if not isinstance(self.label, str) or not self.label.strip():
+            raise ConfigError("button.label must be a non-empty string")
+        _require_positive_int(self.width, "button.width")
+        _require_positive_int(self.height, "button.height")
+        _require_non_negative_int(self.x, "button.x")
+        _require_non_negative_int(self.y, "button.y")
+        if self.event not in ALLOWED_BUTTON_EVENTS:
+            raise ConfigError("button.event must be a UI action event")
+
+
+@dataclass(frozen=True)
+class SliderSpec:
+    """Describe a bounded slider and the event carrying its current value."""
+
+    x: int
+    y: int
+    width: int
+    height: int
+    min_value: float
+    max_value: float
+    initial_value: float
+    event: EventType
+
+    def __post_init__(self) -> None:
+        """Validate slider geometry, value range, and event after initialization."""
+        _require_non_negative_int(self.x, "slider.x")
+        _require_non_negative_int(self.y, "slider.y")
+        _require_positive_int(self.width, "slider.width")
+        _require_positive_int(self.height, "slider.height")
+        if self.min_value >= self.max_value:
+            raise ConfigError("slider.min_value must be less than slider.max_value")
+        if not self.min_value <= self.initial_value <= self.max_value:
+            raise ConfigError("slider.initial_value must be within the configured range")
+        if self.event is not EventType.SPEED_CHANGE:
+            raise ConfigError("slider.event must be SPEED_CHANGE")
+
+
+@dataclass(frozen=True)
+class UIConfig:
+    """Collect validated immutable specifications for constructing a UI."""
+
+    window: WindowSpec
+    grid: GridSpec
+    buttons: tuple[ButtonSpec, ...] = ()
+    sliders: tuple[SliderSpec, ...] = ()
+
+    def __post_init__(self) -> None:
+        """Validate relationships between the window, grid, and controls."""
+        if self.grid.width > self.window.width or self.grid.height > self.window.height:
+            raise ConfigError("grid dimensions must fit inside the window")
+        for control in (*self.buttons, *self.sliders):
+            if control.x + control.width > self.window.width or control.y + control.height > self.window.height:
+                raise ConfigError("UI controls must fit inside the window")
 
 
 class ConfigLoader(ABC):
@@ -28,46 +146,59 @@ class JSONConfigLoader(ConfigLoader):
         self._path = path
 
     def get_config(self) -> UIConfig:
-        with open(self._path, 'r') as f:
-            data = json.load(f)
+        try:
+            with open(self._path, 'r') as config_file:
+                data = json.load(config_file)
+            return self._to_config(data)
+        except ConfigError:
+            raise
+        except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+            raise ConfigError(f"Invalid configuration in '{self._path}': {error}") from error
+
+    @staticmethod
+    def _to_config(data: dict[str, Any]) -> UIConfig:
         window = data['window']
         grid = data['grid']
-
-        buttons: List[Tuple[str, int, int, int, int, EventType]] = []
-        for btn in data.get('buttons', []):
-            buttons.append((
-                btn['label'],
-                btn['width'],
-                btn['height'],
-                btn['x'],
-                btn['y'],
-                EventType[btn['event']]
-            ))
-
-        sliders: List[Tuple[int, int, int, int, float, float, float, EventType]] = []
-        for slider in data.get('sliders', []):
-            sliders.append((
-                slider['x'],
-                slider['y'],
-                slider['width'],
-                slider['height'],
-                slider['min_value'],
-                slider['max_value'],
-                slider['initial_value'],
-                EventType[slider['event']]
-            ))
-
+        buttons = tuple(
+            ButtonSpec(
+                label=button['label'],
+                width=button['width'],
+                height=button['height'],
+                x=button['x'],
+                y=button['y'],
+                event=JSONConfigLoader._event_type(button['event']),
+            )
+            for button in data.get('buttons', [])
+        )
+        sliders = tuple(
+            SliderSpec(
+                x=slider['x'],
+                y=slider['y'],
+                width=slider['width'],
+                height=slider['height'],
+                min_value=slider['min_value'],
+                max_value=slider['max_value'],
+                initial_value=slider['initial_value'],
+                event=JSONConfigLoader._event_type(slider['event']),
+            )
+            for slider in data.get('sliders', [])
+        )
         return UIConfig(
-            width=window['width'],
-            height=window['height'],
-            grid_width=grid['width'],
-            grid_height=grid['height'],
+            window=WindowSpec(width=window['width'], height=window['height']),
+            grid=GridSpec(width=grid['width'], height=grid['height']),
             buttons=buttons,
-            sliders=sliders
+            sliders=sliders,
         )
 
+    @staticmethod
+    def _event_type(event_name: str) -> EventType:
+        try:
+            return EventType[event_name]
+        except (KeyError, TypeError) as error:
+            raise ConfigError(f"Unknown event type: {event_name!r}") from error
 
-class ConfigLoaderFactoryError(Exception):
+
+class ConfigLoaderFactoryError(ConfigError):
     pass
 
 
