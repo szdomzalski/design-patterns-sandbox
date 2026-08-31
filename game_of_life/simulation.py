@@ -35,3 +35,23 @@ class Simulation:
         if not np.isin(board, (0, 1)).all():
             raise InvalidBoardError("board values must be either 0 or 1")
         return board.astype(np.uint8, copy=True)
+
+
+class SimulationFactory:
+    """Create simulations whose initial boards are generated from settings."""
+
+    @staticmethod
+    def create_random(
+            cells_x: int,
+            cells_y: int,
+            alive_probability: float,
+            random_seed: int,
+            ruleset: GameOfLifeRuleset) -> Simulation:
+        """Create a reproducible random board with a local random generator."""
+        random_generator = np.random.default_rng(random_seed)
+        board = random_generator.choice(
+            [0, 1],
+            size=(cells_x, cells_y),
+            p=[1.0 - alive_probability, alive_probability],
+        )
+        return Simulation(board, ruleset)

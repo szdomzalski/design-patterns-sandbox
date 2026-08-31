@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from game_of_life.simulation import InvalidBoardError, Simulation
+from game_of_life.simulation import InvalidBoardError, Simulation, SimulationFactory
 
 
 class InvertingRuleset:
@@ -29,6 +29,26 @@ def test_step_uses_ruleset_to_replace_board() -> None:
     simulation.step()
 
     np.testing.assert_array_equal(simulation.board, np.array([[1, 0]], dtype=np.uint8))
+
+
+def test_random_factory_is_reproducible_for_same_seed() -> None:
+    first = SimulationFactory.create_random(
+        cells_x=10,
+        cells_y=8,
+        alive_probability=0.2,
+        random_seed=42,
+        ruleset=InvertingRuleset(),
+    )
+    second = SimulationFactory.create_random(
+        cells_x=10,
+        cells_y=8,
+        alive_probability=0.2,
+        random_seed=42,
+        ruleset=InvertingRuleset(),
+    )
+
+    assert first.board is not second.board
+    np.testing.assert_array_equal(first.board, second.board)
 
 
 @pytest.mark.parametrize(("board", "message"), [

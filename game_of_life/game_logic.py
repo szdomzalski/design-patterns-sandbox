@@ -37,3 +37,24 @@ class ClassicGameOfLife(GameOfLifeRuleset):
         birth = (state == 0) & (neighbors == 3)
         survive = (state == 1) & ((neighbors == 2) | (neighbors == 3))
         return np.where(birth | survive, 1, 0)
+
+
+class RulesetFactoryError(ValueError):
+    """Report an unknown Game of Life ruleset name."""
+
+
+class RulesetFactory:
+    """Create ruleset strategies registered under configuration-friendly names."""
+
+    _rulesets: dict[str, type[GameOfLifeRuleset]] = {
+        'classic': ClassicGameOfLife,
+    }
+
+    @classmethod
+    def create(cls, name: str) -> GameOfLifeRuleset:
+        """Create the ruleset registered under the supplied name."""
+        try:
+            ruleset_type = cls._rulesets[name]
+        except KeyError as error:
+            raise RulesetFactoryError(f"Unknown ruleset: {name!r}") from error
+        return ruleset_type()

@@ -1,3 +1,10 @@
+simulation:
+  cells_x: 40
+  cells_y: 30
+  alive_probability: 0.2
+  random_seed: 42
+  updates_per_second: 10
+  ruleset: classic
 window:
   width: 800
   height: 800
@@ -24,5 +31,4 @@ sliders:
     height: 20
     min_value: 1.0
     max_value: 50.0
-    initial_value: 10.0
     event: SPEED_CHANGE

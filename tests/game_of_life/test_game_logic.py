@@ -1,6 +1,7 @@
 import numpy as np
+import pytest
 
-from game_of_life.game_logic import ClassicGameOfLife
+from game_of_life.game_logic import ClassicGameOfLife, RulesetFactory, RulesetFactoryError
 
 
 def test_block_is_still_life() -> None:
@@ -52,3 +53,12 @@ def test_cells_outside_board_are_dead() -> None:
     next_board = ClassicGameOfLife().next_generation(board)
 
     np.testing.assert_array_equal(next_board, expected)
+
+
+def test_ruleset_factory_creates_registered_strategy() -> None:
+    assert isinstance(RulesetFactory.create('classic'), ClassicGameOfLife)
+
+
+def test_ruleset_factory_rejects_unknown_strategy() -> None:
+    with pytest.raises(RulesetFactoryError, match="Unknown ruleset"):
+        RulesetFactory.create('unknown')

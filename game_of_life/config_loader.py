@@ -35,6 +35,36 @@ def _require_non_negative_int(value: int, field_name: str) -> None:
         raise ConfigError(f"{field_name} must be a non-negative integer")
 
 
+def _require_number(value: float, field_name: str) -> None:
+    """Require a non-Boolean integer or floating-point value for a named field."""
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ConfigError(f"{field_name} must be a number")
+
+
+@dataclass(frozen=True)
+class SimulationSpec:
+    """Describe initial board generation, update speed, and ruleset selection."""
+
+    cells_x: int
+    cells_y: int
+    alive_probability: float
+    random_seed: int
+    updates_per_second: int
+    ruleset: str
+
+    def __post_init__(self) -> None:
+        """Validate all simulation startup settings after field assignment."""
+        _require_positive_int(self.cells_x, "simulation.cells_x")
+        _require_positive_int(self.cells_y, "simulation.cells_y")
+        _require_number(self.alive_probability, "simulation.alive_probability")
+        if not 0.0 <= self.alive_probability <= 1.0:
+            raise ConfigError("simulation.alive_probability must be between 0 and 1")
+        _require_non_negative_int(self.random_seed, "simulation.random_seed")
+        _require_positive_int(self.updates_per_second, "simulation.updates_per_second")
+        if not isinstance(self.ruleset, str) or not self.ruleset.strip():
+            raise ConfigError("simulation.ruleset must be a non-empty string")
+
+
 @dataclass(frozen=True)
 class WindowSpec:
     """Describe the dimensions of the application window."""
@@ -140,14 +170,35 @@ class UIConfig:
                 raise ConfigError("UI controls must fit inside the window")
 
 
-class UIConfigAdapter:
-    """Adapt a format-independent mapping to validated UI specifications."""
+@dataclass(frozen=True)
+class ApplicationConfig:
+    """Collect simulation and UI specifications for application composition."""
+
+    simulation: SimulationSpec
+    ui: UIConfig
+
+    def __post_init__(self) -> None:
+        """Validate relationships between simulation and UI settings."""
+        self.ui.grid.cell_size(self.simulation.cells_x, self.simulation.cells_y)
+
+
+class ApplicationConfigAdapter:
+    """Adapt a format-independent mapping to validated application settings."""
 
     @staticmethod
-    def from_mapping(data: Mapping[str, Any]) -> UIConfig:
-        """Convert parsed configuration data to a validated UIConfig."""
+    def from_mapping(data: Mapping[str, Any]) -> ApplicationConfig:
+        """Convert parsed configuration data to validated application settings."""
         if not isinstance(data, Mapping):
             raise ConfigError("configuration root must be a mapping")
+        simulation = data['simulation']
+        simulation_spec = SimulationSpec(
+            cells_x=simulation['cells_x'],
+            cells_y=simulation['cells_y'],
+            alive_probability=simulation['alive_probability'],
+            random_seed=simulation['random_seed'],
+            updates_per_second=simulation['updates_per_second'],
+            ruleset=simulation['ruleset'],
+        )
         window = data['window']
         grid = data['grid']
         buttons = tuple(
@@ -157,28 +208,44 @@ class UIConfigAdapter:
                 height=button['height'],
                 x=button['x'],
                 y=button['y'],
-                event=UIConfigAdapter._event_type(button['event']),
+                event=ApplicationConfigAdapter._event_type(button['event']),
             )
             for button in data.get('buttons', [])
         )
         sliders = tuple(
-            SliderSpec(
-                x=slider['x'],
-                y=slider['y'],
-                width=slider['width'],
-                height=slider['height'],
-                min_value=slider['min_value'],
-                max_value=slider['max_value'],
-                initial_value=slider['initial_value'],
-                event=UIConfigAdapter._event_type(slider['event']),
-            )
+            ApplicationConfigAdapter._slider_spec(slider, simulation_spec)
             for slider in data.get('sliders', [])
         )
-        return UIConfig(
-            window=WindowSpec(width=window['width'], height=window['height']),
-            grid=GridSpec(width=grid['width'], height=grid['height']),
-            buttons=buttons,
-            sliders=sliders,
+        return ApplicationConfig(
+            simulation=simulation_spec,
+            ui=UIConfig(
+                window=WindowSpec(width=window['width'], height=window['height']),
+                grid=GridSpec(width=grid['width'], height=grid['height']),
+                buttons=buttons,
+                sliders=sliders,
+            ),
+        )
+
+    @staticmethod
+    def _slider_spec(slider: Mapping[str, Any], simulation: SimulationSpec) -> SliderSpec:
+        """Adapt a slider while deriving only simulation-speed initialization."""
+        event = ApplicationConfigAdapter._event_type(slider['event'])
+        if event is EventType.SPEED_CHANGE:
+            # Simulation speed is the single source of truth for speed controls.
+            initial_value = simulation.updates_per_second
+        else:
+            # Other slider types own their initial value in UI configuration.
+            initial_value = slider['initial_value']
+
+        return SliderSpec(
+            x=slider['x'],
+            y=slider['y'],
+            width=slider['width'],
+            height=slider['height'],
+            min_value=slider['min_value'],
+            max_value=slider['max_value'],
+            initial_value=initial_value,
+            event=event,
         )
 
     @staticmethod
@@ -191,15 +258,15 @@ class UIConfigAdapter:
 
 
 class ConfigLoader(ABC):
-    """Load one configuration syntax and adapt it to a validated UIConfig."""
+    """Load one configuration syntax and adapt it to application settings."""
 
     def __init__(self, path: str) -> None:
         self._path = path
 
-    def get_config(self) -> UIConfig:
+    def get_config(self) -> ApplicationConfig:
         """Read, parse, and adapt the configured source file."""
         try:
-            return UIConfigAdapter.from_mapping(self._read_mapping())
+            return ApplicationConfigAdapter.from_mapping(self._read_mapping())
         except ConfigError:
             raise
         except (OSError, ET.ParseError, yaml.YAMLError, KeyError, TypeError, ValueError) as error:
@@ -242,6 +309,14 @@ class XMLConfigLoader(ConfigLoader):
         'width': int,
         'height': int,
     }
+    _simulation_fields: Mapping[str, Callable[[str], Any]] = {
+        'cells_x': int,
+        'cells_y': int,
+        'alive_probability': float,
+        'random_seed': int,
+        'updates_per_second': int,
+        'ruleset': str,
+    }
     _button_fields: Mapping[str, Callable[[str], Any]] = {
         'label': str,
         'width': int,
@@ -257,18 +332,19 @@ class XMLConfigLoader(ConfigLoader):
         'height': int,
         'min_value': float,
         'max_value': float,
-        'initial_value': float,
         'event': str,
     }
 
     def _read_mapping(self) -> Mapping[str, Any]:
         root = ET.parse(self._path).getroot()
-        if root.tag != 'ui':
-            raise ConfigError("XML configuration root must be <ui>")
+        if root.tag != 'application':
+            raise ConfigError("XML configuration root must be <application>")
 
+        simulation = self._required_child(root, 'simulation')
         window = self._required_child(root, 'window')
         grid = self._required_child(root, 'grid')
         return {
+            'simulation': self._convert_attributes(simulation, self._simulation_fields),
             'window': self._convert_attributes(window, self._window_fields),
             'grid': self._convert_attributes(grid, self._window_fields),
             'buttons': [
@@ -276,7 +352,7 @@ class XMLConfigLoader(ConfigLoader):
                 for button in root.findall('./buttons/button')
             ],
             'sliders': [
-                self._convert_attributes(slider, self._slider_fields)
+                self._convert_slider_attributes(slider)
                 for slider in root.findall('./sliders/slider')
             ],
         }
@@ -298,6 +374,16 @@ class XMLConfigLoader(ConfigLoader):
             return {name: convert(element.attrib[name]) for name, convert in fields.items()}
         except (KeyError, ValueError) as error:
             raise ConfigError(f"Invalid <{element.tag}> attributes: {error}") from error
+
+    def _convert_slider_attributes(self, element: ET.Element) -> dict[str, Any]:
+        """Convert required slider attributes and preserve an optional initial value."""
+        slider = self._convert_attributes(element, self._slider_fields)
+        if 'initial_value' in element.attrib:
+            try:
+                slider['initial_value'] = float(element.attrib['initial_value'])
+            except ValueError as error:
+                raise ConfigError(f"Invalid <{element.tag}> initial_value: {error}") from error
+        return slider
 
 
 class ConfigLoaderFactoryError(ConfigError):
