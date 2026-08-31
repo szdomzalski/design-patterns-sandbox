@@ -3,7 +3,7 @@ import numpy as np
 from typing import Any, Optional
 
 from .event_handling import Event, EventSubscriber, EventType
-from .ui import UI, UIBuilder, UIColor, UIElement, UIWindow
+from .ui import UI, UIBuilder, UIBuilderError, UIColor, UIElement, UIWindow
 
 UI_FRAME_RATE = 60
 
@@ -236,24 +236,60 @@ class PygameUI(UI, EventSubscriber):
 
 
 class PygameUIBuilder(UIBuilder):
+    """Build complete Pygame UIs while enforcing component construction order."""
+
     def __init__(self) -> None:
+        """Initialize an empty builder ready to start its first product."""
+        self._reset()
+
+    def _reset(self) -> None:
+        """Discard builder-owned references after a product has been returned."""
         self.screen: Optional[PygameUIWindow] = None
         self.grid: Optional[PygameUIGrid] = None
         self.buttons: list[PygameUIButton] = []
         self.sliders: list[PygameUISlider] = []
 
     def build_window(self, width: int, height: int) -> None:
+        """Start a product by building its window."""
+        if self.screen is not None:
+            raise UIBuilderError("window has already been built for the current UI")
         self.screen = PygameUIWindow(width, height)
 
     def build_grid(self, n_cells_x: int, n_cells_y: int, cell_width: int, cell_height: int) -> None:
+        """Build the grid after the product window has been created."""
+        self._require_window()
+        if self.grid is not None:
+            raise UIBuilderError("grid has already been built for the current UI")
         self.grid = PygameUIGrid(n_cells_x, n_cells_y, cell_width, cell_height)
 
     def build_button(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
+        """Add a button after the required window and grid have been built."""
+        self._require_grid()
         self.buttons.append(PygameUIButton(label, width, height, x, y, event))
 
     def build_slider(self, x: int, y: int, width: int, height: int, min_value: float,
                     max_value: float, initial_value: float, event: EventType) -> None:
+        """Add a slider after the required window and grid have been built."""
+        self._require_grid()
         self.sliders.append(PygameUISlider(x, y, width, height, min_value, max_value, initial_value, event))
 
     def get_ui(self) -> PygameUI:
-        return PygameUI(self.screen, self.grid, self.buttons, self.sliders)
+        """Return a complete UI and reset this builder for the next product."""
+        screen = self._require_window()
+        grid = self._require_grid()
+        ui = PygameUI(screen, grid, self.buttons, self.sliders)
+        self._reset()
+        return ui
+
+    def _require_window(self) -> PygameUIWindow:
+        """Return the current window or reject an out-of-order operation."""
+        if self.screen is None:
+            raise UIBuilderError("build the window before other UI components")
+        return self.screen
+
+    def _require_grid(self) -> PygameUIGrid:
+        """Return the current grid or reject an incomplete product."""
+        self._require_window()
+        if self.grid is None:
+            raise UIBuilderError("build the grid before controls or product retrieval")
+        return self.grid

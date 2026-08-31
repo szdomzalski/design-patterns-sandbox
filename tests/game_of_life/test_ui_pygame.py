@@ -1,5 +1,15 @@
+import pytest
+
 from game_of_life.event_handling import Event, EventSubscriber, EventType
-from game_of_life.ui_pygame import PygameUIButton, PygameUI, PygameUIGrid, PygameUISlider, PygameUIWindow
+from game_of_life.ui import UIBuilderError
+from game_of_life.ui_pygame import (
+    PygameUIButton,
+    PygameUI,
+    PygameUIBuilder,
+    PygameUIGrid,
+    PygameUISlider,
+    PygameUIWindow,
+)
 
 
 class RecordingSubscriber(EventSubscriber):
@@ -69,3 +79,45 @@ def test_slider_publishes_its_updated_value() -> None:
     slider.update_drag(40)
 
     assert subscriber.events == [Event(EventType.SPEED_CHANGE, 6.0)]
+
+
+def test_builder_rejects_components_built_before_required_parts() -> None:
+    builder = PygameUIBuilder()
+
+    with pytest.raises(UIBuilderError, match="build the window"):
+        builder.build_grid(n_cells_x=1, n_cells_y=1, cell_width=10, cell_height=10)
+
+    builder.build_window(width=100, height=100)
+    with pytest.raises(UIBuilderError, match="build the grid"):
+        builder.build_button("Start", 50, 20, 0, 80, EventType.UI_START)
+
+
+def test_builder_rejects_incomplete_product() -> None:
+    builder = PygameUIBuilder()
+
+    with pytest.raises(UIBuilderError, match="build the window"):
+        builder.get_ui()
+
+    builder.build_window(width=100, height=100)
+    with pytest.raises(UIBuilderError, match="build the grid"):
+        builder.get_ui()
+
+
+def test_builder_creates_independent_products(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(PygameUIWindow, "setup", lambda window: None)
+    builder = PygameUIBuilder()
+
+    builder.build_window(width=100, height=100)
+    builder.build_grid(n_cells_x=10, n_cells_y=10, cell_width=10, cell_height=10)
+    builder.build_button("Start", 50, 20, 0, 80, EventType.UI_START)
+    first_ui = builder.get_ui()
+
+    builder.build_window(width=200, height=200)
+    builder.build_grid(n_cells_x=10, n_cells_y=10, cell_width=20, cell_height=20)
+    second_ui = builder.get_ui()
+
+    assert first_ui is not second_ui
+    assert (first_ui.screen.width, first_ui.screen.height) == (100, 100)
+    assert (second_ui.screen.width, second_ui.screen.height) == (200, 200)
+    assert len(first_ui.buttons) == 1
+    assert second_ui.buttons == []

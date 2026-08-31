@@ -83,9 +83,13 @@ class UI(EventPublisher, ABC):
         pass
 
 
+class UIBuilderError(RuntimeError):
+    """Report invalid UI builder operation order or incomplete products."""
+
+
 class UIBuilder(ABC):
     '''
-    Abstract base class for building UI objects. Defines the interface for constructing UI components.
+    Abstract base class for building UI objects in a defined sequence.
     '''
     @abstractmethod
     def build_window(self, width: int, height: int) -> None:
@@ -143,7 +147,7 @@ class UIBuilder(ABC):
     @abstractmethod
     def get_ui(self) -> UI:
         '''
-        Return the constructed UI object.
+        Return the complete UI object and prepare the builder for another product.
         :return: An instance of UI.
         '''
         pass
@@ -169,8 +173,8 @@ class UIDirector:
         :param n_cells_y: Number of cells in the y direction.
         :return: The constructed UI.
         '''
-        self._builder.build_window(config.window.width, config.window.height)
         cell_width, cell_height = config.grid.cell_size(n_cells_x, n_cells_y)
+        self._builder.build_window(config.window.width, config.window.height)
         self._builder.build_grid(n_cells_x, n_cells_y, cell_width, cell_height)
         for button in config.buttons:
             self._builder.build_button(
