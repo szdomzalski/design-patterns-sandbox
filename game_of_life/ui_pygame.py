@@ -5,6 +5,9 @@ from typing import Any, Optional
 from .event_handling import Event, EventSubscriber, EventType
 from .ui import UI, UIBuilder, UIColor, UIElement, UIWindow
 
+UI_FRAME_RATE = 60
+
+
 class PygameUIWindow(UIWindow):
     def __init__(self, width: int, height: int) -> None:
         self.width = width
@@ -147,14 +150,20 @@ class PygameUISlider(UIElement):
 
 
 class PygameUI(UI, EventSubscriber):
+    """Implement UI input, rendering, and frame pacing with Pygame."""
+
     def __init__(self, screen: PygameUIWindow, grid: PygameUIGrid,
                  buttons: list[PygameUIButton], sliders: list[PygameUISlider] = None) -> None:
+        """Initialize the window, controls, and Pygame frame clock."""
         super().__init__()
         self.screen = screen
         self.screen.setup()
         self.grid = grid
         self.buttons = buttons
         self.sliders = sliders or []
+        # This clock only caps UI frames. Simulation generations are scheduled
+        # separately by Ticker using its injected monotonic Clock.
+        self.frame_clock = pygame.time.Clock()
         for element in [*self.buttons, *self.sliders]:
             element.attach(self)
 
@@ -167,6 +176,7 @@ class PygameUI(UI, EventSubscriber):
         self.publish(event.event_type, event.payload)
 
     def render(self, board_state: np.ndarray) -> None:
+        """Draw the current board and controls, then present the frame."""
         self.screen.clear()
         self.grid.draw(self.screen, board_state=board_state)
         self._draw_buttons()
@@ -174,9 +184,11 @@ class PygameUI(UI, EventSubscriber):
         pygame.display.flip()
 
     def close(self) -> None:
+        """Shut down Pygame resources."""
         pygame.quit()
 
-    def run(self) -> None:
+    def process_events(self) -> None:
+        """Translate pending Pygame input into application events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.publish(EventType.UI_QUIT)
@@ -186,6 +198,10 @@ class PygameUI(UI, EventSubscriber):
                 self._process_mouse_up()
             elif event.type == pygame.MOUSEMOTION:
                 self._process_mouse_motion(event)
+
+    def finish_frame(self) -> None:
+        """Delay if necessary to keep UI processing at or below its frame rate."""
+        self.frame_clock.tick(UI_FRAME_RATE)
 
     def _draw_buttons(self) -> None:
         for button in self.buttons:

@@ -53,9 +53,8 @@ class UIElement(EventPublisher, ABC):
 
 
 class UI(EventPublisher, ABC):
-    '''
-    Abstract base class for UI objects. Defines the interface for updating and drawing UI elements.
-    '''
+    """Define input, rendering, frame pacing, and shutdown operations for a UI."""
+
     @abstractmethod
     def render(self, board_state: Any) -> None:
         '''
@@ -66,11 +65,13 @@ class UI(EventPublisher, ABC):
         pass
 
     @abstractmethod
-    def run(self) -> None:
-        '''
-        Run the main event loop for the UI.
-        :return: None
-        '''
+    def process_events(self) -> None:
+        """Process pending input events for the current UI frame."""
+        pass
+
+    @abstractmethod
+    def finish_frame(self) -> None:
+        """Complete the current UI frame and apply its frame-rate limit."""
         pass
 
     @abstractmethod

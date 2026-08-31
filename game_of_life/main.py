@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from .config_loader import ConfigLoaderFactory, ConfigLoaderFactoryError
-from .event_handling import Timer
+from .event_handling import SystemClock, Ticker
 from .game_controller import GameController
 from .game_logic import ClassicGameOfLife
 from .ui import UIDirector
@@ -11,6 +11,7 @@ from .ui_pygame import PygameUIBuilder
 
 
 def main() -> None:
+    """Compose the application and run its controller loop."""
     # Set a constant random seed for reproducibility
     np.random.seed(42)
 
@@ -37,17 +38,15 @@ def main() -> None:
 
     initial_board_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
     game_logic = ClassicGameOfLife()
-    game = GameController(initial_board_state, game_logic, ui)
+    # This clock schedules board generations. Pygame owns a separate clock
+    # that limits UI input/render frames without changing simulation speed.
+    ticker = Ticker(interval_sec=0.1, clock=SystemClock())
+    game = GameController(initial_board_state, game_logic, ui, ticker)
 
     ui.attach(game)
+    ui.attach(ticker)
 
-    # Initialize timer with 10 updates per second (0.1s interval)
-    timer = Timer(interval_sec=0.1, step_sec=0.01)
-    timer.attach(game)
-    ui.attach(timer)
-
-    with timer:
-        game.run()
+    game.run()
 
 
 if __name__ == "__main__":

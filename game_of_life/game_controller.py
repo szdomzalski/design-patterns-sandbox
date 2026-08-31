@@ -1,29 +1,32 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
-import threading
 
-from .event_handling import Event, EventSubscriber, EventType
+from .event_handling import Event, EventSubscriber, EventType, TickSource
 from .game_logic import GameOfLifeRuleset
 from .ui import UI
 
 
-tick_event = threading.Event()
-tick_event.clear()
-
-
 class GameController(EventSubscriber):
-    def __init__(self, board_state: np.ndarray, game_logic: GameOfLifeRuleset, ui: UI) -> None:
-        '''
-        Initialize the GameController with its board, game logic, and UI. Set startup state to stopped.
+    """Coordinate UI frames, simulation timing, and operational game state."""
+
+    def __init__(
+            self,
+            board_state: np.ndarray,
+            game_logic: GameOfLifeRuleset,
+            ui: UI,
+            ticker: TickSource) -> None:
+        """Initialize a stopped game with all runtime collaborators.
+
         :param board_state: The initial board state.
         :param game_logic: The ruleset used to calculate each generation.
         :param ui: The UI used to process input and render the board.
-        :return: None
-        '''
+        :param ticker: The source that determines when simulation ticks are due.
+        """
         self.game_logic = game_logic
         self.board_state = board_state
         self.ui = ui
+        self.ticker = ticker
 
         self.running = False
         self.game_state: GameState = GameStopped(self)
@@ -35,8 +38,6 @@ class GameController(EventSubscriber):
         :return: None
         '''
         match event.event_type:
-            case EventType.TIMER_TICK:
-                self.tick()
             case EventType.UI_QUIT:
                 self.quit()
             case EventType.UI_STOP:
@@ -68,21 +69,24 @@ class GameController(EventSubscriber):
         self.game_state = state
 
     def run(self) -> None:
-        '''
-        Run the main game loop, handling events and updating the UI.
-        :return: None
+        """Run UI frames until a quit event stops the application.
 
-        The loop continues running until a QUIT event is detected or the timer is stopped.
-        Handles mouse button events to interact with UI buttons.
-        Renders the UI when an update is needed.
-        '''
+        The loop processes UI events continuously and advances the simulation
+        only when the independently configured ticker reports an update is due.
+        """
         self.running = True
         self.ui.render(self.board_state)
         while self.running:
-            tick_event.wait()
-            self.ui.run()
+            self.ui.process_events()
+            if not self.running:
+                break
+            # The simulation clock decides whether the board advances this frame;
+            # it does not control how often UI input and rendering are processed.
+            if self.ticker.poll():
+                self.tick()
             self.ui.render(self.board_state)
-            tick_event.clear()
+            # The UI clock limits frame frequency independently of simulation speed.
+            self.ui.finish_frame()
 
         self.ui.close()
 
@@ -104,6 +108,7 @@ class GameState(ABC):
 
     @abstractmethod
     def tick(self) -> None:
+        """Ignore simulation ticks while the game is stopped."""
         pass
 
 
@@ -120,7 +125,7 @@ class GameStopped(GameState):
         pass
 
     def tick(self) -> None:
-        tick_event.set()
+        pass
 
 
 class GameRunning(GameState):
@@ -136,5 +141,5 @@ class GameRunning(GameState):
         self.game._transition_to(GameStopped(self.game))
 
     def tick(self) -> None:
+        """Advance the board by one generation while the game is running."""
         self.game.board_state = self.game.game_logic.next_generation(self.game.board_state)
-        tick_event.set()

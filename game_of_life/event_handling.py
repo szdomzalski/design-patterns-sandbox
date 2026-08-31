@@ -2,17 +2,15 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-import threading
 import time
 from typing import Any, List
 
 
 class EventType(Enum):
-    TIMER_TICK = 1
-    UI_QUIT = 2
-    UI_STOP = 3
-    UI_START = 4
-    SPEED_CHANGE = 5
+    UI_QUIT = 1
+    UI_STOP = 2
+    UI_START = 3
+    SPEED_CHANGE = 4
 
 
 @dataclass(frozen=True)
@@ -71,72 +69,63 @@ class EventPublisher:
             sub.notify(event)
 
 
-class Timer(EventPublisher, EventSubscriber):
-    def __init__(self, interval_sec: float, step_sec: float = 0.1) -> None:
-        '''
-        Initialize the Timer.
-        :param interval_sec: The interval between events in seconds.
-        :param step_sec: The mini-step sleep interval in seconds (default: 0.1).
-        :return: None
-        '''
-        super().__init__()
+class Clock(ABC):
+    """Provide monotonic time for scheduling simulation updates."""
+
+    @abstractmethod
+    def now(self) -> float:
+        """Return the current monotonic time in seconds."""
+        pass
+
+
+class SystemClock(Clock):
+    """Adapt the system performance counter to the simulation clock interface."""
+
+    def now(self) -> float:
+        """Return the current value of the system performance counter."""
+        return time.perf_counter()
+
+
+class TickSource(ABC):
+    """Define how the controller checks whether a simulation update is due."""
+
+    @abstractmethod
+    def poll(self) -> bool:
+        """Return whether a simulation tick is due."""
+        pass
+
+
+class Ticker(EventSubscriber, TickSource):
+    """Schedule simulation ticks and react to requested speed changes."""
+
+    def __init__(self, interval_sec: float, clock: Clock) -> None:
+        """Initialize the ticker.
+
+        :param interval_sec: The interval between ticks in seconds.
+        :param clock: The monotonic clock used to measure elapsed time.
+        """
         self.interval = interval_sec
-        self.step = step_sec
-        self.running = False
+        self.clock = clock
+        self._last_tick = clock.now()
 
     def notify(self, event: Event) -> None:
-        '''
-        Handle speed change events
-        :param event: The event to handle
-        :return: None
-        '''
+        """Update the simulation interval when a speed-change event arrives.
+
+        :param event: An application event, optionally containing updates per second.
+        """
         if event.event_type == EventType.SPEED_CHANGE:
             speed = event.payload
             if speed > 0:  # Prevent division by zero
                 self.interval = 1.0 / speed  # Convert speed (updates/sec) to interval (sec)
 
-    def __enter__(self) -> Timer:
-        '''
-        Enter the runtime context related to this object. Starts the timer.
-        :return: self
-        '''
-        self.start()
-        return self
+    def poll(self) -> bool:
+        """Check whether enough simulation time has elapsed for another tick.
 
-    def __exit__(self, exc_type: type, exc_val: BaseException, exc_tb) -> None:
-        '''
-        Exit the runtime context and stop the timer.
-        :param exc_type: Exception type
-        :param exc_val: Exception value
-        :param exc_tb: Exception traceback
-        :return: None
-        '''
-        self.stop()
+        :return: True once per elapsed interval; otherwise False.
+        """
+        now = self.clock.now()
+        if now - self._last_tick < self.interval:
+            return False
 
-    def start(self) -> None:
-        '''
-        Start the timer event publisher in a background thread.
-        :return: None
-        '''
-        self.running = True
-        threading.Thread(target=self._run, daemon=True).start()
-
-    def stop(self) -> None:
-        '''
-        Stop the timer event publisher.
-        :return: None
-        '''
-        self.running = False
-
-    def _run(self) -> None:
-        '''
-        Internal method to run the timer and publish subscribers at each interval.
-        :return: None
-        '''
-        last_time = time.perf_counter()
-        while self.running:
-            time.sleep(self.step)
-            now = time.perf_counter()
-            if now - last_time >= self.interval:
-                self.publish(EventType.TIMER_TICK)
-                last_time = now
+        self._last_tick = now
+        return True
