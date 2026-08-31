@@ -1,7 +1,10 @@
+from typing import Any
+
 import numpy as np
 
-from game_of_life.event_handling import EventPublisher, EventType
+from game_of_life.event_handling import Event, EventPublisher, EventType
 from game_of_life.game_controller import GameController
+from game_of_life.ui import UI
 
 
 class IncrementingRuleset:
@@ -13,13 +16,22 @@ class IncrementingRuleset:
         return state + 1
 
 
+class NullUI(UI):
+    def render(self, board_state: Any) -> None:
+        pass
+
+    def run(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
 def test_controller_only_advances_while_running() -> None:
-    controller = GameController()
     initial_board = np.zeros((2, 2), dtype=int)
     ruleset = IncrementingRuleset()
+    controller = GameController(initial_board, ruleset, NullUI())
     publisher = EventPublisher()
-    controller.set_board_state(initial_board)
-    controller.assign_game_logic(ruleset)
     publisher.attach(controller)
 
     publisher.publish(EventType.TIMER_TICK)
@@ -35,3 +47,15 @@ def test_controller_only_advances_while_running() -> None:
     publisher.publish(EventType.TIMER_TICK)
     np.testing.assert_array_equal(controller.board_state, np.ones((2, 2), dtype=int))
     assert ruleset.calls == 1
+
+
+def test_controllers_have_independent_state() -> None:
+    first = GameController(np.zeros((1, 1), dtype=int), IncrementingRuleset(), NullUI())
+    second = GameController(np.full((1, 1), 10, dtype=int), IncrementingRuleset(), NullUI())
+
+    first.notify(Event(EventType.UI_START))
+    first.notify(Event(EventType.TIMER_TICK))
+
+    assert first is not second
+    np.testing.assert_array_equal(first.board_state, np.ones((1, 1), dtype=int))
+    np.testing.assert_array_equal(second.board_state, np.full((1, 1), 10, dtype=int))

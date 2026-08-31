@@ -5,7 +5,6 @@ import threading
 
 from .event_handling import Event, EventSubscriber, EventType
 from .game_logic import GameOfLifeRuleset
-from .singleton_subscriber_meta import SingletonSubscriberMeta
 from .ui import UI
 
 
@@ -13,43 +12,21 @@ tick_event = threading.Event()
 tick_event.clear()
 
 
-class GameController(EventSubscriber, metaclass=SingletonSubscriberMeta):
-    def __init__(self) -> None:
+class GameController(EventSubscriber):
+    def __init__(self, board_state: np.ndarray, game_logic: GameOfLifeRuleset, ui: UI) -> None:
         '''
-        Initialize the GameController with empty game logic, board state, and UI. Set startup state to running.
-        :return: None
-        '''
-        self.game_logic = None
-        self.board_state = None
-        self.ui = None
-
-        self.running = False
-        self.game_state: GameState = GameStopped(self)
-
-
-    def set_board_state(self, state: np.ndarray) -> None:
-        '''
-        Set the current game state. This method should be used to set initial state of singleton.
-        :set board_state: The current game state to render.
-        :return: None
-        '''
-        self.board_state = state
-
-    def assign_game_logic(self, game_logic: GameOfLifeRuleset) -> None:
-        '''
-        Set the game logic (ruleset) to use.
-        :param game_logic: The game logic (ruleset) to use (must implement GameOfLifeRuleset).
+        Initialize the GameController with its board, game logic, and UI. Set startup state to stopped.
+        :param board_state: The initial board state.
+        :param game_logic: The ruleset used to calculate each generation.
+        :param ui: The UI used to process input and render the board.
         :return: None
         '''
         self.game_logic = game_logic
-
-    def assign_ui(self, ui: UI) -> None:
-        '''
-        Set the UI object to use.
-        :param ui: The UI object to use.
-        :return: None
-        '''
+        self.board_state = board_state
         self.ui = ui
+
+        self.running = False
+        self.game_state: GameState = GameStopped(self)
 
     def notify(self, event: Event) -> None:
         '''

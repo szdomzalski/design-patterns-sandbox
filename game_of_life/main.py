@@ -31,18 +31,15 @@ def main() -> None:
     # For now, keep cell count fixed (can be made dynamic later)
     n_cells_x, n_cells_y = 40, 30
 
-    game = GameController()
     builder = PygameUIBuilder()
     director = UIDirector(builder)
     ui = director.construct_ui(ui_config, n_cells_x, n_cells_y)
-    ui.attach(game)
 
     initial_board_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
     game_logic = ClassicGameOfLife()
+    game = GameController(initial_board_state, game_logic, ui)
 
-    game.set_board_state(initial_board_state)
-    game.assign_ui(ui)
-    game.assign_game_logic(game_logic)
+    ui.attach(game)
 
     # Initialize timer with 10 updates per second (0.1s interval)
     timer = Timer(interval_sec=0.1, step_sec=0.01)
