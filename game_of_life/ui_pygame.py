@@ -1,9 +1,10 @@
 import pygame
 import numpy as np
-from game_controller import GameController
-from event_handling import EventType, EventPublisher
-from ui import UI, UIBuilder, UIColor, UIElement, UIWindow
 from typing import Any, Optional
+
+from .event_handling import EventType, EventPublisher
+from .game_controller import GameController
+from .ui import UI, UIBuilder, UIColor, UIElement, UIWindow
 
 class PygameUIWindow(UIWindow):
     def __init__(self, width: int, height: int) -> None:

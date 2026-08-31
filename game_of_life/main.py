@@ -2,12 +2,12 @@ import argparse
 import os
 import numpy as np
 
-from config_loader import ConfigLoaderFactory, ConfigLoaderFactoryError
-from event_handling import Timer
-from game_controller import GameController
-from game_logic import ClassicGameOfLife
-from ui import UIDirector
-from ui_pygame import PygameUIBuilder
+from .config_loader import ConfigLoaderFactory, ConfigLoaderFactoryError
+from .event_handling import Timer
+from .game_controller import GameController
+from .game_logic import ClassicGameOfLife
+from .ui import UIDirector
+from .ui_pygame import PygameUIBuilder
 
 
 def main() -> None:

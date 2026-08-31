@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
-from config_loader import UIConfig
-from event_handling import EventPublisher, EventType
+from .config_loader import UIConfig
+from .event_handling import EventPublisher, EventType
 
 
 class UIColor(Enum):

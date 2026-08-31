@@ -4,7 +4,7 @@ from typing import List, Tuple, Type
 import json
 import os
 
-from event_handling import EventType
+from .event_handling import EventType
 
 
 @dataclass

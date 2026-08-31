@@ -3,10 +3,10 @@ from abc import ABC, abstractmethod
 import numpy as np
 import threading
 
-from event_handling import Event, EventSubscriber, EventType
-from game_logic import GameOfLifeRuleset
-from singleton_subscriber_meta import SingletonSubscriberMeta
-from ui import UI
+from .event_handling import Event, EventSubscriber, EventType
+from .game_logic import GameOfLifeRuleset
+from .singleton_subscriber_meta import SingletonSubscriberMeta
+from .ui import UI
 
 
 tick_event = threading.Event()
