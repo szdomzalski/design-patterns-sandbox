@@ -59,3 +59,37 @@ def test_controllers_have_independent_state() -> None:
     assert first is not second
     np.testing.assert_array_equal(first.board_state, np.ones((1, 1), dtype=int))
     np.testing.assert_array_equal(second.board_state, np.full((1, 1), 10, dtype=int))
+
+
+def test_repeated_start_and_stop_follow_state_action_matrix() -> None:
+    ruleset = IncrementingRuleset()
+    controller = GameController(np.zeros((1, 1), dtype=int), ruleset, NullUI())
+
+    # The initial state is stopped. Stopping again is a no-op, and a tick
+    # must not calculate a new generation.
+    controller.stop()
+    controller.tick()
+    assert ruleset.calls == 0
+
+    # Starting an already running game is a no-op. The following tick still
+    # calculates exactly one generation rather than applying the action twice.
+    controller.start()
+    controller.start()
+    controller.tick()
+    assert ruleset.calls == 1
+
+    # Stopping an already stopped game is also a no-op. A later tick leaves
+    # the generation count unchanged.
+    controller.stop()
+    controller.stop()
+    controller.tick()
+    assert ruleset.calls == 1
+
+
+def test_quit_stops_application_loop() -> None:
+    controller = GameController(np.zeros((1, 1), dtype=int), IncrementingRuleset(), NullUI())
+    controller.running = True
+
+    controller.quit()
+
+    assert controller.running is False

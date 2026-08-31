@@ -36,15 +36,36 @@ class GameController(EventSubscriber):
         '''
         match event.event_type:
             case EventType.TIMER_TICK:
-                self.game_state.handle_timer_tick()
+                self.tick()
             case EventType.UI_QUIT:
-                self.running = False
+                self.quit()
             case EventType.UI_STOP:
-                self.game_state = GameStopped(self)
+                self.stop()
             case EventType.UI_START:
-                self.game_state = GameRunning(self)
+                self.start()
             case _:
                 pass
+
+    def start(self) -> None:
+        '''Start or continue the simulation according to its current state.'''
+        self.game_state.start()
+
+    def stop(self) -> None:
+        '''Stop the simulation according to its current state.'''
+        self.game_state.stop()
+
+    def tick(self) -> None:
+        '''Handle a simulation tick according to the current state.'''
+        self.game_state.tick()
+
+    def quit(self) -> None:
+        '''Stop the application loop.'''
+        self.running = False
+
+    def _transition_to(self, state: GameState) -> None:
+        # States are internal collaborators; application code should request
+        # transitions through start() and stop() instead of selecting a state.
+        self.game_state = state
 
     def run(self) -> None:
         '''
@@ -74,7 +95,15 @@ class GameState(ABC):
         self.game = game
 
     @abstractmethod
-    def handle_timer_tick(self) -> None:
+    def start(self) -> None:
+        pass
+
+    @abstractmethod
+    def stop(self) -> None:
+        pass
+
+    @abstractmethod
+    def tick(self) -> None:
         pass
 
 
@@ -84,7 +113,13 @@ class GameStopped(GameState):
     This state indicates that the game is not running.
     '''
 
-    def handle_timer_tick(self) -> None:
+    def start(self) -> None:
+        self.game._transition_to(GameRunning(self.game))
+
+    def stop(self) -> None:
+        pass
+
+    def tick(self) -> None:
         tick_event.set()
 
 
@@ -94,6 +129,12 @@ class GameRunning(GameState):
     This state indicates that the game is currently active and processing.
     '''
 
-    def handle_timer_tick(self) -> None:
+    def start(self) -> None:
+        pass
+
+    def stop(self) -> None:
+        self.game._transition_to(GameStopped(self.game))
+
+    def tick(self) -> None:
         self.game.board_state = self.game.game_logic.next_generation(self.game.board_state)
         tick_event.set()
