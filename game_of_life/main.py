@@ -2,12 +2,52 @@ import argparse
 import os
 
 from .config_loader import ConfigError, ConfigLoaderFactory
-from .event_handling import SystemClock, Ticker
+from .event_handling import Clock, SystemClock, Ticker
 from .game_controller import GameController
 from .game_logic import RulesetFactory, RulesetFactoryError
 from .simulation import SimulationFactory
-from .ui import UIDirector
+from .ui import UIBuilder, UIDirector
 from .ui_pygame import PygameUIBuilder
+
+
+DEFAULT_CONFIG_PATH = os.path.join(
+    os.path.dirname(__file__), 'config', 'ui_config.json')
+
+
+def compose_game(config_path: str, ui_builder: UIBuilder, clock: Clock) -> GameController:
+    """Compose a game controller from configuration and injected adapters.
+
+    :param config_path: Path to any configuration format supported by the loader factory.
+    :param ui_builder: Builder for the concrete UI adapter.
+    :param clock: Monotonic simulation clock implementation.
+    :return: A fully wired controller that has not started its run loop.
+    """
+    config_loader = ConfigLoaderFactory.create(config_path)
+    application_config = config_loader.get_config()
+    simulation_config = application_config.simulation
+    ruleset = RulesetFactory.create(simulation_config.ruleset)
+
+    ui = UIDirector(ui_builder).construct_ui(
+        application_config.ui,
+        simulation_config.cells_x,
+        simulation_config.cells_y,
+    )
+    simulation = SimulationFactory.create_random(
+        cells_x=simulation_config.cells_x,
+        cells_y=simulation_config.cells_y,
+        alive_probability=simulation_config.alive_probability,
+        random_seed=simulation_config.random_seed,
+        ruleset=ruleset,
+    )
+    ticker = Ticker(
+        interval_sec=1.0 / simulation_config.updates_per_second,
+        clock=clock,
+    )
+    game = GameController(simulation, ui, ticker)
+
+    ui.attach(game)
+    ui.attach(ticker)
+    return game
 
 
 def main() -> None:
@@ -20,49 +60,12 @@ def main() -> None:
 
     # Factory selection keeps the composition root independent of JSON, TOML,
     # YAML, and XML parsing details. The loader returns validated typed specs.
-    CONFIG_PATH = args.config if args.config else os.path.join(
-        os.path.dirname(__file__), 'config', 'ui_config.json')
+    config_path = args.config if args.config else DEFAULT_CONFIG_PATH
     try:
-        config_loader = ConfigLoaderFactory.create(CONFIG_PATH)
-        application_config = config_loader.get_config()
-        ruleset = RulesetFactory.create(application_config.simulation.ruleset)
+        game = compose_game(config_path, PygameUIBuilder(), SystemClock())
     except (ConfigError, RulesetFactoryError) as e:
         print(f"Error: {e}")
         exit(1)
-
-    simulation_config = application_config.simulation
-
-    # The director translates the UI recipe into calls understood by the
-    # concrete Pygame builder.
-    builder = PygameUIBuilder()
-    director = UIDirector(builder)
-    ui = director.construct_ui(
-        application_config.ui,
-        simulation_config.cells_x,
-        simulation_config.cells_y,
-    )
-
-    # The simulation factory owns reproducible board generation, while the
-    # ruleset factory above selects the configured Strategy implementation.
-    simulation = SimulationFactory.create_random(
-        cells_x=simulation_config.cells_x,
-        cells_y=simulation_config.cells_y,
-        alive_probability=simulation_config.alive_probability,
-        random_seed=simulation_config.random_seed,
-        ruleset=ruleset,
-    )
-    # This clock schedules board generations. Pygame owns a separate clock
-    # that limits UI input/render frames without changing simulation speed.
-    ticker = Ticker(
-        interval_sec=1.0 / simulation_config.updates_per_second,
-        clock=SystemClock(),
-    )
-    game = GameController(simulation, ui, ticker)
-
-    # Explicit Observer wiring keeps controls, controller, and ticker unaware
-    # of each other's concrete implementations.
-    ui.attach(game)
-    ui.attach(ticker)
 
     game.run()
 
