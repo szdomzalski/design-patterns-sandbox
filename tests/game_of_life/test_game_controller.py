@@ -4,6 +4,7 @@ import numpy as np
 
 from game_of_life.event_handling import Event, EventPublisher, EventType, TickSource
 from game_of_life.game_controller import GameController
+from game_of_life.simulation import Simulation
 from game_of_life.ui import UI
 
 
@@ -57,8 +58,7 @@ def create_controller(
         ticker: TickSource | None = None) -> GameController:
     """Build a controller with inert test doubles for omitted collaborators."""
     return GameController(
-        board_state,
-        ruleset or IncrementingRuleset(),
+            Simulation(board_state, ruleset or IncrementingRuleset()),
         ui or NullUI(),
         ticker or FakeTicker(),
     )
@@ -72,30 +72,31 @@ def test_controller_only_advances_while_running() -> None:
     publisher.attach(controller)
 
     controller.tick()
-    np.testing.assert_array_equal(controller.board_state, initial_board)
+    np.testing.assert_array_equal(controller.simulation.board, initial_board)
     assert ruleset.calls == 0
 
     publisher.publish(EventType.UI_START)
     controller.tick()
-    np.testing.assert_array_equal(controller.board_state, np.ones((2, 2), dtype=int))
+    np.testing.assert_array_equal(controller.simulation.board, np.ones((2, 2), dtype=int))
     assert ruleset.calls == 1
 
     publisher.publish(EventType.UI_STOP)
     controller.tick()
-    np.testing.assert_array_equal(controller.board_state, np.ones((2, 2), dtype=int))
+    np.testing.assert_array_equal(controller.simulation.board, np.ones((2, 2), dtype=int))
     assert ruleset.calls == 1
 
 
 def test_controllers_have_independent_state() -> None:
     first = create_controller(np.zeros((1, 1), dtype=int))
-    second = create_controller(np.full((1, 1), 10, dtype=int))
+    second_board = np.array([[0, 1]], dtype=int)
+    second = create_controller(second_board)
 
     first.notify(Event(EventType.UI_START))
     first.tick()
 
     assert first is not second
-    np.testing.assert_array_equal(first.board_state, np.ones((1, 1), dtype=int))
-    np.testing.assert_array_equal(second.board_state, np.full((1, 1), 10, dtype=int))
+    np.testing.assert_array_equal(first.simulation.board, np.ones((1, 1), dtype=int))
+    np.testing.assert_array_equal(second.simulation.board, second_board)
 
 
 def test_repeated_start_and_stop_follow_state_action_matrix() -> None:

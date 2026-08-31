@@ -1,9 +1,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import numpy as np
 
 from .event_handling import Event, EventSubscriber, EventType, TickSource
-from .game_logic import GameOfLifeRuleset
+from .simulation import Simulation
 from .ui import UI
 
 
@@ -12,19 +11,16 @@ class GameController(EventSubscriber):
 
     def __init__(
             self,
-            board_state: np.ndarray,
-            game_logic: GameOfLifeRuleset,
+            simulation: Simulation,
             ui: UI,
             ticker: TickSource) -> None:
         """Initialize a stopped game with all runtime collaborators.
 
-        :param board_state: The initial board state.
-        :param game_logic: The ruleset used to calculate each generation.
+        :param simulation: The model owning the board and generation strategy.
         :param ui: The UI used to process input and render the board.
         :param ticker: The source that determines when simulation ticks are due.
         """
-        self.game_logic = game_logic
-        self.board_state = board_state
+        self.simulation = simulation
         self.ui = ui
         self.ticker = ticker
 
@@ -75,7 +71,7 @@ class GameController(EventSubscriber):
         only when the independently configured ticker reports an update is due.
         """
         self.running = True
-        self.ui.render(self.board_state)
+        self.ui.render(self.simulation.board)
         while self.running:
             self.ui.process_events()
             if not self.running:
@@ -84,7 +80,7 @@ class GameController(EventSubscriber):
             # it does not control how often UI input and rendering are processed.
             if self.ticker.poll():
                 self.tick()
-            self.ui.render(self.board_state)
+            self.ui.render(self.simulation.board)
             # The UI clock limits frame frequency independently of simulation speed.
             self.ui.finish_frame()
 
@@ -142,4 +138,4 @@ class GameRunning(GameState):
 
     def tick(self) -> None:
         """Advance the board by one generation while the game is running."""
-        self.game.board_state = self.game.game_logic.next_generation(self.game.board_state)
+        self.game.simulation.step()

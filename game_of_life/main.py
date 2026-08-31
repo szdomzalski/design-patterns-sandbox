@@ -6,6 +6,7 @@ from .config_loader import ConfigError, ConfigLoaderFactory
 from .event_handling import SystemClock, Ticker
 from .game_controller import GameController
 from .game_logic import ClassicGameOfLife
+from .simulation import Simulation
 from .ui import UIDirector
 from .ui_pygame import PygameUIBuilder
 
@@ -38,11 +39,11 @@ def main() -> None:
     ui = director.construct_ui(ui_config, n_cells_x, n_cells_y)
 
     initial_board_state = np.random.choice([0, 1], size=(n_cells_x, n_cells_y), p=[0.8, 0.2])
-    game_logic = ClassicGameOfLife()
+    simulation = Simulation(initial_board_state, ClassicGameOfLife())
     # This clock schedules board generations. Pygame owns a separate clock
     # that limits UI input/render frames without changing simulation speed.
     ticker = Ticker(interval_sec=0.1, clock=SystemClock())
-    game = GameController(initial_board_state, game_logic, ui, ticker)
+    game = GameController(simulation, ui, ticker)
 
     ui.attach(game)
     ui.attach(ticker)
