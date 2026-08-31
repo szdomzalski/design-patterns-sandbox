@@ -145,7 +145,7 @@ class PygameUISlider(UIElement):
         if new_value != self.value:
             self.value = new_value
             self.handle_x = mouse_x
-            self.publish(self.event)
+            self.publish(self.event, self.value)
 
 
 class PygameUI(UI):

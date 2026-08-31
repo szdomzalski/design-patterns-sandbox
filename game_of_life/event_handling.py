@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 import threading
 import time
-from typing import List
+from typing import Any, List
 
 
 class EventType(Enum):
@@ -18,7 +18,7 @@ class EventType(Enum):
 @dataclass(frozen=True)
 class Event:
     event_type: EventType
-    publisher: EventPublisher
+    payload: Any = None
 
 
 class EventSubscriber(ABC):
@@ -46,16 +46,28 @@ class EventPublisher:
         :param subscriber: The EventSubscriber to attach.
         :return: None
         '''
-        self.subscribers.append(subscriber)
+        if subscriber not in self.subscribers:
+            self.subscribers.append(subscriber)
 
-    def publish(self, event_type: EventType) -> None:
+    def detach(self, subscriber: EventSubscriber) -> None:
+        '''
+        Stop a subscriber from receiving events.
+        :param subscriber: The EventSubscriber to detach.
+        :return: None
+        '''
+        if subscriber in self.subscribers:
+            self.subscribers.remove(subscriber)
+
+    def publish(self, event_type: EventType, payload: Any = None) -> None:
         '''
         Publish the event to all subscribers by calling their notify method.
         :param event_type: The type of event to publish.
+        :param payload: Optional event data.
         :return: None
         '''
-        event = Event(event_type, self)
-        for sub in self.subscribers:
+        event = Event(event_type, payload)
+        # Keep delivery stable if a notification callback attaches or detaches subscribers.
+        for sub in self.subscribers.copy():
             sub.notify(event)
 
 
@@ -87,8 +99,7 @@ class Timer(EventPublisher, EventSubscriber):
         :return: None
         '''
         if event.event_type == EventType.SPEED_CHANGE:
-            # Assuming the publisher is the slider and its value represents speed in updates per second
-            speed = event.publisher.value
+            speed = event.payload
             if speed > 0:  # Prevent division by zero
                 self.interval = 1.0 / speed  # Convert speed (updates/sec) to interval (sec)
 
