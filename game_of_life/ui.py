@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
+
 from .config_loader import UIConfig
 from .event_handling import EventPublisher, EventType
 
@@ -26,7 +27,6 @@ class UIWindow(ABC):
         Set up the UI window.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def clear(self) -> None:
@@ -34,7 +34,6 @@ class UIWindow(ABC):
         Clear the UI window.
         :return: None
         '''
-        pass
 
 
 class UIElement(EventPublisher, ABC):
@@ -49,7 +48,6 @@ class UIElement(EventPublisher, ABC):
         :param kwargs: Additional keyword arguments required for dynamic drawing.
         :return: None
         '''
-        pass
 
 
 class UI(EventPublisher, ABC):
@@ -62,7 +60,6 @@ class UI(EventPublisher, ABC):
         :param board_state: The current game state to render.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def process_events(self) -> None:
@@ -72,7 +69,6 @@ class UI(EventPublisher, ABC):
     @abstractmethod
     def finish_frame(self) -> None:
         """Complete the current UI frame and apply its frame-rate limit."""
-        pass
 
     @abstractmethod
     def close(self) -> None:
@@ -80,7 +76,6 @@ class UI(EventPublisher, ABC):
         Close the UI window.
         :return: None
         '''
-        pass
 
 
 class UIBuilderError(RuntimeError):
@@ -99,7 +94,6 @@ class UIBuilder(ABC):
         :param height: The height of the window.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def build_grid(self, n_cells_x: int, n_cells_y: int, cell_width: int, cell_height: int) -> None:
@@ -111,7 +105,6 @@ class UIBuilder(ABC):
         :param cell_height: Height of each cell.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def build_button(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
@@ -125,7 +118,6 @@ class UIBuilder(ABC):
         :param event: The event type associated with the button.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def build_slider(self, x: int, y: int, width: int, height: int, min_value: float,
@@ -142,7 +134,6 @@ class UIBuilder(ABC):
         :param event: The event type associated with the slider.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def get_ui(self) -> UI:
@@ -150,7 +141,6 @@ class UIBuilder(ABC):
         Return the complete UI object and prepare the builder for another product.
         :return: An instance of UI.
         '''
-        pass
 
 
 class UIDirector:

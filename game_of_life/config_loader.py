@@ -1,16 +1,15 @@
-from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass
-from typing import Any, Type
 import json
 import os
 import tomllib
 import xml.etree.ElementTree as ET
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from typing import Any
 
 import yaml
 
 from .event_handling import EventType
-
 
 ALLOWED_BUTTON_EVENTS = frozenset({
     EventType.UI_QUIT,
@@ -275,7 +274,6 @@ class ConfigLoader(ABC):
     @abstractmethod
     def _read_mapping(self) -> Mapping[str, Any]:
         """Parse the source format into the shared mapping representation."""
-        pass
 
 
 class JSONConfigLoader(ConfigLoader):
@@ -391,7 +389,7 @@ class ConfigLoaderFactoryError(ConfigError):
 
 
 class ConfigLoaderFactory:
-    _loaders = {
+    _loaders = {  # noqa: RUF012
         '.json': JSONConfigLoader,
         '.toml': TOMLConfigLoader,
         '.yaml': YAMLConfigLoader,
@@ -405,5 +403,5 @@ class ConfigLoaderFactory:
         ext = ext.lower()
         if not ext or ext not in ConfigLoaderFactory._loaders:
             raise ConfigLoaderFactoryError(f"Unsupported or missing config file extension: '{ext}'")
-        loader_cls: Type[ConfigLoader] = ConfigLoaderFactory._loaders[ext]
+        loader_cls: type[ConfigLoader] = ConfigLoaderFactory._loaders[ext]
         return loader_cls(path)

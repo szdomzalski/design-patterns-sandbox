@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 from .config_loader import ConfigError, ConfigLoaderFactory
 from .event_handling import Clock, SystemClock, Ticker
@@ -8,7 +9,6 @@ from .game_logic import RulesetFactory, RulesetFactoryError
 from .simulation import SimulationFactory
 from .ui import UIBuilder, UIDirector
 from .ui_pygame import PygameUIBuilder
-
 
 DEFAULT_CONFIG_PATH = os.path.join(
     os.path.dirname(__file__), 'config', 'ui_config.json')
@@ -65,7 +65,7 @@ def main() -> None:
         game = compose_game(config_path, PygameUIBuilder(), SystemClock())
     except (ConfigError, RulesetFactoryError) as e:
         print(f"Error: {e}")
-        exit(1)
+        sys.exit(1)
 
     game.run()
 

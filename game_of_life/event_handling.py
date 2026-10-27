@@ -1,9 +1,10 @@
 from __future__ import annotations
+
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-import time
-from typing import Any, List
+from typing import Any
 
 
 class EventType(Enum):
@@ -27,7 +28,6 @@ class EventSubscriber(ABC):
         :param event: The event to handle.
         :return: None
         '''
-        pass
 
 
 class EventPublisher:
@@ -36,7 +36,7 @@ class EventPublisher:
         Initialize the EventPublisher with an empty list of subscribers.
         :return: None
         '''
-        self.subscribers: List[EventSubscriber] = []
+        self.subscribers: list[EventSubscriber] = []
 
     def attach(self, subscriber: EventSubscriber) -> None:
         '''
@@ -75,7 +75,6 @@ class Clock(ABC):
     @abstractmethod
     def now(self) -> float:
         """Return the current monotonic time in seconds."""
-        pass
 
 
 class SystemClock(Clock):
@@ -92,7 +91,6 @@ class TickSource(ABC):
     @abstractmethod
     def poll(self) -> bool:
         """Return whether a simulation tick is due."""
-        pass
 
 
 class Ticker(EventSubscriber, TickSource):

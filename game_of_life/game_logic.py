@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 import numpy as np
 from scipy.signal import convolve2d
 
@@ -46,7 +47,7 @@ class RulesetFactoryError(ValueError):
 class RulesetFactory:
     """Create ruleset strategies registered under configuration-friendly names."""
 
-    _rulesets: dict[str, type[GameOfLifeRuleset]] = {
+    _rulesets: dict[str, type[GameOfLifeRuleset]] = {  # noqa: RUF012
         'classic': ClassicGameOfLife,
     }
 

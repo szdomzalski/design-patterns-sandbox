@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 
 from .event_handling import Event, EventSubscriber, EventType, TickSource
@@ -105,7 +106,6 @@ class GameState(ABC):
     @abstractmethod
     def tick(self) -> None:
         """Ignore simulation ticks while the game is stopped."""
-        pass
 
 
 class GameStopped(GameState):

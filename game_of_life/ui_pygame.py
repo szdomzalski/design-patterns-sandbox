@@ -1,6 +1,7 @@
-import pygame
-import numpy as np
 from typing import Any, Optional
+
+import numpy as np
+import pygame
 
 from .event_handling import Event, EventSubscriber, EventType
 from .ui import UI, UIBuilder, UIBuilderError, UIColor, UIElement, UIWindow
@@ -12,7 +13,7 @@ class PygameUIWindow(UIWindow):
     def __init__(self, width: int, height: int) -> None:
         self.width = width
         self.height = height
-        self.screen: Optional[pygame.Surface] = None
+        self.screen: pygame.Surface | None = None
 
     def setup(self) -> None:
         pygame.init()
@@ -153,7 +154,7 @@ class PygameUI(UI, EventSubscriber):
     """Implement UI input, rendering, and frame pacing with Pygame."""
 
     def __init__(self, screen: PygameUIWindow, grid: PygameUIGrid,
-                 buttons: list[PygameUIButton], sliders: list[PygameUISlider] = None) -> None:
+                 buttons: list[PygameUIButton], sliders: list[PygameUISlider] | None = None) -> None:
         """Initialize the window, controls, and Pygame frame clock."""
         super().__init__()
         self.screen = screen
@@ -244,8 +245,8 @@ class PygameUIBuilder(UIBuilder):
 
     def _reset(self) -> None:
         """Discard builder-owned references after a product has been returned."""
-        self.screen: Optional[PygameUIWindow] = None
-        self.grid: Optional[PygameUIGrid] = None
+        self.screen: PygameUIWindow | None = None
+        self.grid: PygameUIGrid | None = None
         self.buttons: list[PygameUIButton] = []
         self.sliders: list[PygameUISlider] = []
 
