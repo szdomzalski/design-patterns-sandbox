@@ -64,7 +64,6 @@ class UI(EventPublisher, ABC):
     @abstractmethod
     def process_events(self) -> None:
         """Process pending input events for the current UI frame."""
-        pass
 
     @abstractmethod
     def finish_frame(self) -> None:
