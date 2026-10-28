@@ -1,15 +1,19 @@
-import pygame
-import numpy as np
-from game_controller import GameController
-from event_handling import EventType, EventPublisher
-from ui import UI, UIBuilder, UIColor, UIElement, UIWindow
 from typing import Any, Optional
+
+import numpy as np
+import pygame
+
+from .event_handling import Event, EventSubscriber, EventType
+from .ui import UI, UIBuilder, UIBuilderError, UIColor, UIElement, UIWindow
+
+UI_FRAME_RATE = 60
+
 
 class PygameUIWindow(UIWindow):
     def __init__(self, width: int, height: int) -> None:
         self.width = width
         self.height = height
-        self.screen: Optional[pygame.Surface] = None
+        self.screen: pygame.Surface | None = None
 
     def setup(self) -> None:
         pygame.init()
@@ -48,7 +52,6 @@ class PygameUIButton(UIElement):
         self.x = x
         self.y = y
         self.event = event
-        self.attach(GameController())
 
     def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
         screen = window.get_surface()
@@ -144,30 +147,37 @@ class PygameUISlider(UIElement):
         if new_value != self.value:
             self.value = new_value
             self.handle_x = mouse_x
-            self.publish(self.event)
+            self.publish(self.event, self.value)
 
 
-class PygameUI(UI):
+class PygameUI(UI, EventSubscriber):
+    """Implement UI input, rendering, and frame pacing with Pygame."""
+
     def __init__(self, screen: PygameUIWindow, grid: PygameUIGrid,
-                 buttons: list[PygameUIButton], sliders: list[PygameUISlider] = None) -> None:
+                 buttons: list[PygameUIButton], sliders: list[PygameUISlider] | None = None) -> None:
+        """Initialize the window, controls, and Pygame frame clock."""
         super().__init__()
         self.screen = screen
         self.screen.setup()
         self.grid = grid
         self.buttons = buttons
         self.sliders = sliders or []
+        # This clock only caps UI frames. Simulation generations are scheduled
+        # separately by Ticker using its injected monotonic Clock.
+        self.frame_clock = pygame.time.Clock()
+        for element in [*self.buttons, *self.sliders]:
+            element.attach(self)
 
-    def get_speed_control(self) -> EventPublisher:
+    def notify(self, event: Event) -> None:
         '''
-        Get the publisher that handles speed control events.
-        :return: An EventPublisher instance that publishes SPEED_CHANGE events
+        Forward events from child controls to subscribers of the complete UI.
+        :param event: The child control event to forward.
+        :return: None
         '''
-        for slider in self.sliders:
-            if slider.event == EventType.SPEED_CHANGE:
-                return slider
-        raise Exception("No speed control slider configured in UI")
+        self.publish(event.event_type, event.payload)
 
     def render(self, board_state: np.ndarray) -> None:
+        """Draw the current board and controls, then present the frame."""
         self.screen.clear()
         self.grid.draw(self.screen, board_state=board_state)
         self._draw_buttons()
@@ -175,9 +185,11 @@ class PygameUI(UI):
         pygame.display.flip()
 
     def close(self) -> None:
+        """Shut down Pygame resources."""
         pygame.quit()
 
-    def run(self) -> None:
+    def process_events(self) -> None:
+        """Translate pending Pygame input into application events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.publish(EventType.UI_QUIT)
@@ -187,6 +199,10 @@ class PygameUI(UI):
                 self._process_mouse_up()
             elif event.type == pygame.MOUSEMOTION:
                 self._process_mouse_motion(event)
+
+    def finish_frame(self) -> None:
+        """Delay if necessary to keep UI processing at or below its frame rate."""
+        self.frame_clock.tick(UI_FRAME_RATE)
 
     def _draw_buttons(self) -> None:
         for button in self.buttons:
@@ -221,24 +237,60 @@ class PygameUI(UI):
 
 
 class PygameUIBuilder(UIBuilder):
+    """Build complete Pygame UIs while enforcing component construction order."""
+
     def __init__(self) -> None:
-        self.screen: Optional[PygameUIWindow] = None
-        self.grid: Optional[PygameUIGrid] = None
+        """Initialize an empty builder ready to start its first product."""
+        self._reset()
+
+    def _reset(self) -> None:
+        """Discard builder-owned references after a product has been returned."""
+        self.screen: PygameUIWindow | None = None
+        self.grid: PygameUIGrid | None = None
         self.buttons: list[PygameUIButton] = []
         self.sliders: list[PygameUISlider] = []
 
     def build_window(self, width: int, height: int) -> None:
+        """Start a product by building its window."""
+        if self.screen is not None:
+            raise UIBuilderError("window has already been built for the current UI")
         self.screen = PygameUIWindow(width, height)
 
     def build_grid(self, n_cells_x: int, n_cells_y: int, cell_width: int, cell_height: int) -> None:
+        """Build the grid after the product window has been created."""
+        self._require_window()
+        if self.grid is not None:
+            raise UIBuilderError("grid has already been built for the current UI")
         self.grid = PygameUIGrid(n_cells_x, n_cells_y, cell_width, cell_height)
 
     def build_button(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
+        """Add a button after the required window and grid have been built."""
+        self._require_grid()
         self.buttons.append(PygameUIButton(label, width, height, x, y, event))
 
     def build_slider(self, x: int, y: int, width: int, height: int, min_value: float,
                     max_value: float, initial_value: float, event: EventType) -> None:
+        """Add a slider after the required window and grid have been built."""
+        self._require_grid()
         self.sliders.append(PygameUISlider(x, y, width, height, min_value, max_value, initial_value, event))
 
     def get_ui(self) -> PygameUI:
-        return PygameUI(self.screen, self.grid, self.buttons, self.sliders)
+        """Return a complete UI and reset this builder for the next product."""
+        screen = self._require_window()
+        grid = self._require_grid()
+        ui = PygameUI(screen, grid, self.buttons, self.sliders)
+        self._reset()
+        return ui
+
+    def _require_window(self) -> PygameUIWindow:
+        """Return the current window or reject an out-of-order operation."""
+        if self.screen is None:
+            raise UIBuilderError("build the window before other UI components")
+        return self.screen
+
+    def _require_grid(self) -> PygameUIGrid:
+        """Return the current grid or reject an incomplete product."""
+        self._require_window()
+        if self.grid is None:
+            raise UIBuilderError("build the grid before controls or product retrieval")
+        return self.grid

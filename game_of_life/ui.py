@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
-from config_loader import UIConfig
-from event_handling import EventPublisher, EventType
+
+from .config_loader import UIConfig
+from .event_handling import EventPublisher, EventType
 
 
 class UIColor(Enum):
@@ -26,7 +27,6 @@ class UIWindow(ABC):
         Set up the UI window.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def clear(self) -> None:
@@ -34,7 +34,6 @@ class UIWindow(ABC):
         Clear the UI window.
         :return: None
         '''
-        pass
 
 
 class UIElement(EventPublisher, ABC):
@@ -49,13 +48,11 @@ class UIElement(EventPublisher, ABC):
         :param kwargs: Additional keyword arguments required for dynamic drawing.
         :return: None
         '''
-        pass
 
 
 class UI(EventPublisher, ABC):
-    '''
-    Abstract base class for UI objects. Defines the interface for updating and drawing UI elements.
-    '''
+    """Define input, rendering, frame pacing, and shutdown operations for a UI."""
+
     @abstractmethod
     def render(self, board_state: Any) -> None:
         '''
@@ -63,15 +60,15 @@ class UI(EventPublisher, ABC):
         :param board_state: The current game state to render.
         :return: None
         '''
+
+    @abstractmethod
+    def process_events(self) -> None:
+        """Process pending input events for the current UI frame."""
         pass
 
     @abstractmethod
-    def run(self) -> None:
-        '''
-        Run the main event loop for the UI.
-        :return: None
-        '''
-        pass
+    def finish_frame(self) -> None:
+        """Complete the current UI frame and apply its frame-rate limit."""
 
     @abstractmethod
     def close(self) -> None:
@@ -79,20 +76,15 @@ class UI(EventPublisher, ABC):
         Close the UI window.
         :return: None
         '''
-        pass
 
-    @abstractmethod
-    def get_speed_control(self) -> EventPublisher:
-        '''
-        Get the publisher that handles speed control events.
-        :return: An EventPublisher instance that publishes SPEED_CHANGE events
-        '''
-        pass
+
+class UIBuilderError(RuntimeError):
+    """Report invalid UI builder operation order or incomplete products."""
 
 
 class UIBuilder(ABC):
     '''
-    Abstract base class for building UI objects. Defines the interface for constructing UI components.
+    Abstract base class for building UI objects in a defined sequence.
     '''
     @abstractmethod
     def build_window(self, width: int, height: int) -> None:
@@ -102,7 +94,6 @@ class UIBuilder(ABC):
         :param height: The height of the window.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def build_grid(self, n_cells_x: int, n_cells_y: int, cell_width: int, cell_height: int) -> None:
@@ -114,7 +105,6 @@ class UIBuilder(ABC):
         :param cell_height: Height of each cell.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def build_button(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
@@ -128,7 +118,6 @@ class UIBuilder(ABC):
         :param event: The event type associated with the button.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def build_slider(self, x: int, y: int, width: int, height: int, min_value: float,
@@ -145,15 +134,13 @@ class UIBuilder(ABC):
         :param event: The event type associated with the slider.
         :return: None
         '''
-        pass
 
     @abstractmethod
     def get_ui(self) -> UI:
         '''
-        Return the constructed UI object.
+        Return the complete UI object and prepare the builder for another product.
         :return: An instance of UI.
         '''
-        pass
 
 
 class UIDirector:
@@ -176,12 +163,27 @@ class UIDirector:
         :param n_cells_y: Number of cells in the y direction.
         :return: The constructed UI.
         '''
-        self._builder.build_window(config.width, config.height)
-        cell_width = config.grid_width // n_cells_x
-        cell_height = config.grid_height // n_cells_y
+        cell_width, cell_height = config.grid.cell_size(n_cells_x, n_cells_y)
+        self._builder.build_window(config.window.width, config.window.height)
         self._builder.build_grid(n_cells_x, n_cells_y, cell_width, cell_height)
         for button in config.buttons:
-            self._builder.build_button(*button)
+            self._builder.build_button(
+                button.label,
+                button.width,
+                button.height,
+                button.x,
+                button.y,
+                button.event,
+            )
         for slider in config.sliders:
-            self._builder.build_slider(*slider)
+            self._builder.build_slider(
+                slider.x,
+                slider.y,
+                slider.width,
+                slider.height,
+                slider.min_value,
+                slider.max_value,
+                slider.initial_value,
+                slider.event,
+            )
         return self._builder.get_ui()
