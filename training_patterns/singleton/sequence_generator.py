@@ -1,6 +1,6 @@
 from threading import Lock, Thread
 
-from meta import SingletonMetaLazy, SingletonMetaEager
+from training_patterns.singleton.meta import SingletonMetaLazy, SingletonMetaEager
 
 
 class SequenceGeneratorLazy(metaclass=SingletonMetaLazy):
