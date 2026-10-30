@@ -72,20 +72,21 @@ class GameController(EventSubscriber):
         only when the independently configured ticker reports an update is due.
         """
         self.running = True
-        self.ui.render(self.simulation.board)
-        while self.running:
-            self.ui.process_events()
-            if not self.running:
-                break
-            # The simulation clock decides whether the board advances this frame;
-            # it does not control how often UI input and rendering are processed.
-            if self.ticker.poll():
-                self.tick()
+        try:
             self.ui.render(self.simulation.board)
-            # The UI clock limits frame frequency independently of simulation speed.
-            self.ui.finish_frame()
-
-        self.ui.close()
+            while self.running:
+                self.ui.process_events()
+                if not self.running:
+                    break
+                # The simulation clock decides whether the board advances this frame;
+                # it does not control how often UI input and rendering are processed.
+                if self.ticker.poll():
+                    self.tick()
+                self.ui.render(self.simulation.board)
+                # The UI clock limits frame frequency independently of simulation speed.
+                self.ui.finish_frame()
+        finally:
+            self.ui.close()
 
 
 class GameState(ABC):

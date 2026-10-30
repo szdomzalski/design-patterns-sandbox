@@ -1,6 +1,7 @@
 from typing import Any
 
 import numpy as np
+import pytest
 
 from game_of_life.event_handling import Event, EventPublisher, EventType, TickSource
 from game_of_life.game_controller import GameController
@@ -165,6 +166,13 @@ class QuittingUI(NullUI):
         self.closed = True
 
 
+class FailingUI(QuittingUI):
+    """Raise during frame processing while recording shutdown."""
+
+    def process_events(self) -> None:
+        raise RuntimeError("input processing failed")
+
+
 def test_run_processes_quit_without_waiting_for_simulation_tick() -> None:
     """A UI quit event exits before simulation polling or frame completion."""
     ui = QuittingUI()
@@ -177,6 +185,16 @@ def test_run_processes_quit_without_waiting_for_simulation_tick() -> None:
     assert ui.run_count == 1
     assert ticker.poll_count == 0
     assert ui.finished_frame_count == 0
+    assert ui.closed is True
+
+
+def test_run_closes_ui_when_frame_processing_raises() -> None:
+    ui = FailingUI()
+    controller = create_controller(np.zeros((1, 1), dtype=int), ui=ui)
+
+    with pytest.raises(RuntimeError, match="input processing failed"):
+        controller.run()
+
     assert ui.closed is True
 
 
