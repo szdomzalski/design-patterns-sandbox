@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import tomllib
 import xml.etree.ElementTree as ET
@@ -38,6 +39,8 @@ def _require_number(value: float, field_name: str) -> None:
     """Require a non-Boolean integer or floating-point value for a named field."""
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ConfigError(f"{field_name} must be a number")
+    if not math.isfinite(value):
+        raise ConfigError(f"{field_name} must be finite")
 
 
 @dataclass(frozen=True)
@@ -143,12 +146,17 @@ class SliderSpec:
         _require_non_negative_int(self.y, "slider.y")
         _require_positive_int(self.width, "slider.width")
         _require_positive_int(self.height, "slider.height")
+        _require_number(self.min_value, "slider.min_value")
+        _require_number(self.max_value, "slider.max_value")
+        _require_number(self.initial_value, "slider.initial_value")
+        if self.event is not EventType.SPEED_CHANGE:
+            raise ConfigError("slider.event must be SPEED_CHANGE")
+        if self.min_value <= 0:
+            raise ConfigError("slider.min_value must be greater than zero")
         if self.min_value >= self.max_value:
             raise ConfigError("slider.min_value must be less than slider.max_value")
         if not self.min_value <= self.initial_value <= self.max_value:
             raise ConfigError("slider.initial_value must be within the configured range")
-        if self.event is not EventType.SPEED_CHANGE:
-            raise ConfigError("slider.event must be SPEED_CHANGE")
 
 
 @dataclass(frozen=True)

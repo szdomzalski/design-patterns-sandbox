@@ -113,8 +113,7 @@ class Ticker(EventSubscriber, TickSource):
         """
         if event.event_type == EventType.SPEED_CHANGE:
             speed = event.payload
-            if speed > 0:  # Prevent division by zero
-                self.interval = 1.0 / speed  # Convert speed (updates/sec) to interval (sec)
+            self.interval = 1.0 / speed  # Convert speed (updates/sec) to interval (sec)
 
     def poll(self) -> bool:
         """Check whether enough simulation time has elapsed for another tick.

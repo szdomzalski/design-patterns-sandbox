@@ -123,6 +123,39 @@ def test_rejects_invalid_slider_range() -> None:
         )
 
 
+@pytest.mark.parametrize("min_value", [0.0, -1.0])
+def test_rejects_non_positive_speed_slider_minimum(min_value: float) -> None:
+    with pytest.raises(ConfigError, match="min_value must be greater than zero"):
+        SliderSpec(
+            x=0,
+            y=0,
+            width=100,
+            height=20,
+            min_value=min_value,
+            max_value=10.0,
+            initial_value=5.0,
+            event=EventType.SPEED_CHANGE,
+        )
+
+
+@pytest.mark.parametrize(("min_value", "max_value"), [
+    (float("nan"), 10.0),
+    (1.0, float("inf")),
+])
+def test_rejects_non_finite_speed_slider_bounds(min_value: float, max_value: float) -> None:
+    with pytest.raises(ConfigError, match="must be finite"):
+        SliderSpec(
+            x=0,
+            y=0,
+            width=100,
+            height=20,
+            min_value=min_value,
+            max_value=max_value,
+            initial_value=5.0,
+            event=EventType.SPEED_CHANGE,
+        )
+
+
 def test_rejects_invalid_simulation_settings() -> None:
     with pytest.raises(ConfigError, match="alive_probability must be between 0 and 1"):
         SimulationSpec(
