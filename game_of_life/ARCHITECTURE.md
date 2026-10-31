@@ -24,7 +24,7 @@ flowchart LR
 ## Pattern Responsibilities
 
 - **Adapter:** JSON, TOML, YAML, and XML loaders normalize external formats;
-  `PygameUI` adapts Pygame input and rendering to the `UI` interface.
+  `PygameUI` and `TkinterUI` adapt their engines to the `UI` interface.
 - **Builder:** `UIDirector` applies a typed UI recipe through `UIBuilder`.
 - **Factory Method:** loader, UI builder, and ruleset factories select
   implementations by configuration-friendly names or file extensions.
