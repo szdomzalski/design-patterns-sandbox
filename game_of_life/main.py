@@ -7,18 +7,17 @@ from .event_handling import Clock, SystemClock, Ticker
 from .game_controller import GameController
 from .game_logic import RulesetFactory, RulesetFactoryError
 from .simulation import SimulationFactory
-from .ui import UIBuilder, UIDirector
-from .ui_pygame import PygameUIBuilder
+from .ui import UIDirector
+from .ui_factory import UIBuilderFactory
 
 DEFAULT_CONFIG_PATH = os.path.join(
     os.path.dirname(__file__), 'config', 'ui_config.json')
 
 
-def compose_game(config_path: str, ui_builder: UIBuilder, clock: Clock) -> GameController:
+def compose_game(config_path: str, clock: Clock) -> GameController:
     """Compose a game controller from configuration and injected adapters.
 
     :param config_path: Path to any configuration format supported by the loader factory.
-    :param ui_builder: Builder for the concrete UI adapter.
     :param clock: Monotonic simulation clock implementation.
     :return: A fully wired controller that has not started its run loop.
     """
@@ -26,6 +25,7 @@ def compose_game(config_path: str, ui_builder: UIBuilder, clock: Clock) -> GameC
     application_config = config_loader.get_config()
     simulation_config = application_config.simulation
     ruleset = RulesetFactory.create(simulation_config.ruleset)
+    ui_builder = UIBuilderFactory.create(application_config.ui.engine)
 
     ui = UIDirector(ui_builder).construct_ui(
         application_config.ui,
@@ -62,7 +62,7 @@ def main() -> None:
     # YAML, and XML parsing details. The loader returns validated typed specs.
     config_path = args.config if args.config else DEFAULT_CONFIG_PATH
     try:
-        game = compose_game(config_path, PygameUIBuilder(), SystemClock())
+        game = compose_game(config_path, SystemClock())
     except (ConfigError, RulesetFactoryError) as e:
         print(f"Error: {e}")
         sys.exit(1)

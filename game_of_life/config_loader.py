@@ -167,9 +167,12 @@ class UIConfig:
     grid: GridSpec
     buttons: tuple[ButtonSpec, ...] = ()
     sliders: tuple[SliderSpec, ...] = ()
+    engine: str = 'pygame'
 
     def __post_init__(self) -> None:
         """Validate relationships between the window, grid, and controls."""
+        if not isinstance(self.engine, str) or not self.engine.strip():
+            raise ConfigError("engine must be a non-empty string")
         if self.grid.width > self.window.width or self.grid.height > self.window.height:
             raise ConfigError("grid dimensions must fit inside the window")
         for control in (*self.buttons, *self.sliders):
@@ -230,6 +233,7 @@ class ApplicationConfigAdapter:
                 grid=GridSpec(width=grid['width'], height=grid['height']),
                 buttons=buttons,
                 sliders=sliders,
+                engine=data.get('engine', 'pygame'),
             ),
         )
 
@@ -350,6 +354,7 @@ class XMLConfigLoader(ConfigLoader):
         window = self._required_child(root, 'window')
         grid = self._required_child(root, 'grid')
         return {
+            'engine': root.attrib.get('engine', 'pygame'),
             'simulation': self._convert_attributes(simulation, self._simulation_fields),
             'window': self._convert_attributes(window, self._window_fields),
             'grid': self._convert_attributes(grid, self._window_fields),

@@ -9,7 +9,7 @@ from game_of_life.event_handling import Clock, EventType
 from game_of_life.game_logic import ClassicGameOfLife
 from game_of_life.main import compose_game
 from game_of_life.ui import UI, UIBuilder
-from game_of_life.ui_pygame import PygameUIBuilder
+from game_of_life.ui_factory import UIBuilderFactory
 
 
 CONFIG_PATH = Path(__file__).parents[2] / "game_of_life" / "config" / "ui_config.json"
@@ -96,11 +96,30 @@ class HeadlessUIBuilder(UIBuilder):
         return self.ui
 
 
-def test_composed_application_runs_one_configured_generation_headlessly() -> None:
+def test_composition_selects_builder_for_configured_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    clock = FakeClock()
+    builder = HeadlessUIBuilder(ScriptedUI(clock))
+    selected_engines: list[str] = []
+
+    def create_builder(engine: str) -> UIBuilder:
+        selected_engines.append(engine)
+        return builder
+
+    monkeypatch.setattr(UIBuilderFactory, "create", staticmethod(create_builder))
+
+    compose_game(str(CONFIG_PATH), clock)
+
+    assert selected_engines == ["pygame"]
+    assert builder.window_size == (800, 800)
+
+
+def test_composed_application_runs_one_configured_generation_headlessly(
+        monkeypatch: pytest.MonkeyPatch) -> None:
     clock = FakeClock()
     ui = ScriptedUI(clock)
     builder = HeadlessUIBuilder(ui)
-    game = compose_game(str(CONFIG_PATH), builder, clock)
+    monkeypatch.setattr(UIBuilderFactory, "create", staticmethod(lambda _engine: builder))
+    game = compose_game(str(CONFIG_PATH), clock)
 
     game.run()
 

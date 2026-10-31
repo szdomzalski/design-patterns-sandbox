@@ -45,7 +45,10 @@ Configuration files can use JSON, TOML, YAML (`.yaml` or `.yml`), or XML
 formats. The repository includes examples in
 [`game_of_life/config/`](game_of_life/config). Configuration values control
 the board dimensions, initial cell density and random seed, update rate,
-ruleset, window and grid sizes, and UI controls.
+ruleset, UI engine, window and grid sizes, and UI controls. Set the root
+`engine` value to `pygame` to select the bundled Pygame builder. Additional UI
+engines can be added to the registry in `game_of_life/ui_factory.py` without
+changing application composition.
 
 Use the **Start** and **Stop** buttons to control the simulation, drag the
 speed slider to change its update rate, and close the window to exit.

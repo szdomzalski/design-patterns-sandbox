@@ -7,6 +7,8 @@ wires observers, and starts the controller. Other modules do not import it.
 flowchart LR
     ConfigFile --> ConfigLoaderFactory
     ConfigLoaderFactory --> ApplicationConfig
+    ApplicationConfig --> UIBuilderFactory
+    UIBuilderFactory --> UIDirector
     ApplicationConfig --> UIDirector
     ApplicationConfig --> SimulationFactory
     RulesetFactory --> Simulation
@@ -24,8 +26,8 @@ flowchart LR
 - **Adapter:** JSON, TOML, YAML, and XML loaders normalize external formats;
   `PygameUI` adapts Pygame input and rendering to the `UI` interface.
 - **Builder:** `UIDirector` applies a typed UI recipe through `UIBuilder`.
-- **Factory Method:** loader and ruleset factories select implementations by
-  configuration-friendly names or file extensions.
+- **Factory Method:** loader, UI builder, and ruleset factories select
+  implementations by configuration-friendly names or file extensions.
 - **Observer:** controls publish UI events; the composed UI forwards them to the
   controller and ticker through explicit subscriptions.
 - **State:** running and stopped states decide transitions and tick behavior.
@@ -39,5 +41,6 @@ tests can create independent applications without shared global state.
 
 The controller depends on `Simulation`, `UI`, and `TickSource`, not on Pygame,
 file formats, or the system clock. `Simulation` depends only on the ruleset
-strategy. Concrete loaders, Pygame, and `SystemClock` are selected at the
-composition boundary, keeping domain behavior usable in headless tests.
+strategy. Concrete loaders, the configured UI builder, and `SystemClock` are
+selected at the composition boundary, keeping domain behavior usable in
+headless tests.

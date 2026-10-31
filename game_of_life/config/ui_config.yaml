@@ -1,3 +1,4 @@
+engine: pygame
 simulation:
   cells_x: 40
   cells_y: 30

@@ -43,6 +43,7 @@ def expected_config() -> ApplicationConfig:
             sliders=(
                 SliderSpec(150, 740, 500, 20, 1.0, 50.0, 10.0, EventType.SPEED_CHANGE),
             ),
+            engine="pygame",
         ),
     )
 
@@ -165,6 +166,15 @@ def test_rejects_invalid_simulation_settings() -> None:
             random_seed=42,
             updates_per_second=10,
             ruleset="classic",
+        )
+
+
+def test_rejects_blank_ui_engine() -> None:
+    with pytest.raises(ConfigError, match="engine must be a non-empty string"):
+        UIConfig(
+            window=WindowSpec(100, 100),
+            grid=GridSpec(100, 100),
+            engine=" ",
         )
 
 
