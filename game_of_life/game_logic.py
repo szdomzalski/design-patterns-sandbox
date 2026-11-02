@@ -17,7 +17,6 @@ class GameOfLifeRuleset(ABC):
         :param state: Current game state as a 2D numpy array.
         :return: Next generation as a 2D numpy array.
         '''
-        pass
 
 
 class LifeLikeRuleset(GameOfLifeRuleset):
