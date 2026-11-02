@@ -50,7 +50,7 @@ ruleset, UI engine, window and grid sizes, and UI controls. Set the root
 
 ```json
 {
-	"engine": "tkinter"
+ "engine": "tkinter"
 }
 ```
 
