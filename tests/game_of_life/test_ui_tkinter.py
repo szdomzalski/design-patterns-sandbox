@@ -1,7 +1,8 @@
+import numpy as np
 import pytest
 
 from game_of_life.event_handling import Event, EventSubscriber, EventType
-from game_of_life.ui import UIBuilderError
+from game_of_life.ui import UIBuilderError, UIElement
 from game_of_life.ui_tkinter import (
     TkinterUIButton,
     TkinterUI,
@@ -23,8 +24,6 @@ class RecordingSubscriber(EventSubscriber):
 def disable_window_setup(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(TkinterUIWindow, "setup", lambda window: None)
     monkeypatch.setattr(TkinterUIWindow, "set_close_handler", lambda window, handler: None)
-    monkeypatch.setattr(TkinterUIButton, "mount", lambda button, window: None)
-    monkeypatch.setattr(TkinterUISlider, "mount", lambda slider, window: None)
 
 
 def test_ui_forwards_events_from_its_controls(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -60,6 +59,22 @@ def test_slider_publishes_changed_value() -> None:
     slider.on_change("6.0")
 
     assert subscriber.events == [Event(EventType.SPEED_CHANGE, 6.0)]
+
+
+def test_ui_renders_controls_through_ui_element_interface(monkeypatch: pytest.MonkeyPatch) -> None:
+    disable_window_setup(monkeypatch)
+    button = TkinterUIButton("Start", 100, 20, 0, 0, EventType.UI_START)
+    slider = TkinterUISlider(0, 20, 100, 20, 1.0, 11.0, 1.0, EventType.SPEED_CHANGE)
+    grid = TkinterUIGrid(n_cells_x=1, n_cells_y=1, cell_width=1, cell_height=1)
+    drawn_elements: list[UIElement] = []
+    monkeypatch.setattr(grid, "draw", lambda window, **kwargs: None)
+    monkeypatch.setattr(button, "draw", lambda window, **kwargs: drawn_elements.append(button))
+    monkeypatch.setattr(slider, "draw", lambda window, **kwargs: drawn_elements.append(slider))
+    ui = TkinterUI(TkinterUIWindow(100, 100), grid, [button], [slider])
+
+    ui.render(np.zeros((1, 1), dtype=int))
+
+    assert drawn_elements == [button, slider]
 
 
 def test_builder_rejects_components_built_before_required_parts() -> None:
