@@ -1,6 +1,7 @@
-from time import monotonic, sleep
-from typing import Any, Callable
 import tkinter as tk
+from collections.abc import Callable
+from time import monotonic, sleep
+from typing import Any
 
 import numpy as np
 
@@ -142,7 +143,7 @@ class TkinterUIButton(UIElement):
         self.widget: tk.Button | None = None
 
     def draw(self, window: TkinterUIWindow, **kwargs: Any) -> None:
-        """Create and position the native Tk button on its first draw."""
+        """Create and position the native Tk button if does not exist."""
         if self.widget is not None:
             return
         self.widget = tk.Button(window.get_root(), text=self.label, command=self.on_click)
@@ -150,6 +151,7 @@ class TkinterUIButton(UIElement):
 
     def on_click(self) -> None:
         """Publish this button's configured event."""
+        # TODO: Consider implementing on_click as part of UIElement class
         self.publish(self.event)
 
 
@@ -173,7 +175,7 @@ class TkinterUISlider(UIElement):
         self.variable: tk.DoubleVar | None = None
 
     def draw(self, window: TkinterUIWindow, **kwargs: Any) -> None:
-        """Create and position the native Tk scale on its first draw."""
+        """Create and position the native Tk scale if not exists."""
         if self.widget is not None:
             return
         self.variable = tk.DoubleVar(window.get_root(), value=self.value)
@@ -185,11 +187,11 @@ class TkinterUISlider(UIElement):
             resolution=0.1,
             showvalue=True,
             variable=self.variable,
-            command=self.on_change,
+            command=self._on_change,
         )
         self.widget.place(x=self.x, y=self.y, width=self.width, height=self.height + 30)
 
-    def on_change(self, value: str) -> None:
+    def _on_change(self, value: str) -> None:
         """Publish a changed numeric slider value."""
         new_value = float(value)
         if new_value == self.value:
@@ -213,14 +215,17 @@ class TkinterUI(UI, EventSubscriber):
         self.sliders = sliders or []
         self._frame_started_at = monotonic()
         for element in [*self.buttons, *self.sliders]:
+            element: UIElement
             element.attach(self)
 
     def notify(self, event: Event) -> None:
         """Forward control events to subscribers of the complete UI."""
+        # TODO: Consider implementing notify as part of UIElement class
         self.publish(event.event_type, event.payload)
 
     def render(self, board_state: np.ndarray) -> None:
         """Draw the current board state and ensure native controls exist."""
+        # TODO: Consider implementing part of render as part of UIElement class
         self.screen.clear()
         self.grid.draw(self.screen, board_state=board_state)
         for button in self.buttons:
@@ -258,10 +263,12 @@ class TkinterUIBuilder(UIBuilder):
 
     def __init__(self) -> None:
         """Initialize an empty builder ready to start its first product."""
+        # TODO: Consider implementing __init__ method in the base UIBuilder class
         self._reset()
 
     def _reset(self) -> None:
         """Discard builder-owned references after a product is returned."""
+        # TODO: Consider implementing _reset method in the base UIBuilder class
         self.screen: TkinterUIWindow | None = None
         self.grid: TkinterUIGrid | None = None
         self.buttons: list[TkinterUIButton] = []

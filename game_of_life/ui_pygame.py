@@ -166,6 +166,7 @@ class PygameUI(UI, EventSubscriber):
         # separately by Ticker using its injected monotonic Clock.
         self.frame_clock = pygame.time.Clock()
         for element in [*self.buttons, *self.sliders]:
+            element: UIElement
             element.attach(self)
 
     def notify(self, event: Event) -> None:

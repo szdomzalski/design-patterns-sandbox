@@ -56,7 +56,7 @@ def test_slider_publishes_changed_value() -> None:
     subscriber = RecordingSubscriber()
     slider.attach(subscriber)
 
-    slider.on_change("6.0")
+    slider._on_change("6.0")
 
     assert subscriber.events == [Event(EventType.SPEED_CHANGE, 6.0)]
 
