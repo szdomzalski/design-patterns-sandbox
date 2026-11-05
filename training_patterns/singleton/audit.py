@@ -3,7 +3,7 @@ import os
 from threading import Lock, Thread
 import time
 
-from meta import SingletonMetaLazy, SingletonMetaEager
+from training_patterns.singleton.meta import SingletonMetaLazy, SingletonMetaEager
 
 
 class FileAuditManagerLazy(metaclass=SingletonMetaLazy):
