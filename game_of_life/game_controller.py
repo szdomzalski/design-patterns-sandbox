@@ -1,3 +1,5 @@
+"""Coordinate simulation state, UI processing, and application events."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,9 +19,13 @@ class GameController(EventSubscriber):
             ticker: TickSource) -> None:
         """Initialize a stopped game with all runtime collaborators.
 
-        :param simulation: The model owning the board and generation strategy.
-        :param ui: The UI used to process input and render the board.
-        :param ticker: The source that determines when simulation ticks are due.
+        Args:
+            simulation: The model owning the board and generation strategy.
+            ui: The UI used to process input and render the board.
+            ticker: The source that determines when simulation ticks are due.
+
+        Returns:
+            None.
         """
         self.simulation = simulation
         self.ui = ui
@@ -29,11 +35,14 @@ class GameController(EventSubscriber):
         self.game_state: GameState = GameStopped(self)
 
     def notify(self, event: Event) -> None:
-        '''
-        Handle events from various publishers using pattern matching.
-        :param event: The event to handle.
-        :return: None
-        '''
+        """Handle events from publishers using pattern matching.
+
+        Args:
+            event: The event to handle.
+
+        Returns:
+            None.
+        """
         match event.event_type:
             case EventType.UI_QUIT:
                 self.quit()
@@ -45,22 +54,58 @@ class GameController(EventSubscriber):
                 pass
 
     def start(self) -> None:
-        '''Start or continue the simulation according to its current state.'''
+        """Start or continue the simulation according to its current state.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.game_state.start()
 
     def stop(self) -> None:
-        '''Stop the simulation according to its current state.'''
+        """Stop the simulation according to its current state.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.game_state.stop()
 
     def tick(self) -> None:
-        '''Handle a simulation tick according to the current state.'''
+        """Handle a simulation tick according to the current state.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.game_state.tick()
 
     def quit(self) -> None:
-        '''Stop the application loop.'''
+        """Stop the application loop.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.running = False
 
     def _transition_to(self, state: GameState) -> None:
+        """Set the active game state.
+
+        Args:
+            state: State object to make active.
+
+        Returns:
+            None.
+        """
         # States are internal collaborators; application code should request
         # transitions through start() and stop() instead of selecting a state.
         self.game_state = state
@@ -70,6 +115,12 @@ class GameController(EventSubscriber):
 
         The loop processes UI events continuously and advances the simulation
         only when the independently configured ticker reports an update is due.
+
+        Args:
+            None.
+
+        Returns:
+            None.
         """
         self.running = True
         try:
@@ -90,53 +141,119 @@ class GameController(EventSubscriber):
 
 
 class GameState(ABC):
-    '''
-    Abstract base class (interface) for game operational state.
-    '''
+    """Define state-dependent operations for the game controller."""
+
     def __init__(self, game: GameController) -> None:
+        """Associate this state with its controller.
+
+        Args:
+            game: Controller whose state this object represents.
+
+        Returns:
+            None.
+        """
         self.game = game
 
     @abstractmethod
     def start(self) -> None:
-        pass
+        """Handle a request to start the game.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
 
     @abstractmethod
     def stop(self) -> None:
-        pass
+        """Handle a request to stop the game.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
 
     @abstractmethod
     def tick(self) -> None:
-        """Ignore simulation ticks while the game is stopped."""
+        """Handle a simulation tick according to the current state.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
 
 
 class GameStopped(GameState):
-    '''
-    Represents the stopped state of the game.
-    This state indicates that the game is not running.
-    '''
+    """Represent a game that is not running."""
 
     def start(self) -> None:
+        """Transition the controller to the running state.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.game._transition_to(GameRunning(self.game))
 
     def stop(self) -> None:
-        pass
+        """Leave the controller in the stopped state.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
 
     def tick(self) -> None:
-        pass
+        """Ignore a simulation tick while the game is stopped.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
 
 
 class GameRunning(GameState):
-    '''
-    Represents the running state of the game.
-    This state indicates that the game is currently active and processing.
-    '''
+    """Represent a game that is actively processing simulation ticks."""
 
     def start(self) -> None:
-        pass
+        """Keep the controller in the running state.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
 
     def stop(self) -> None:
+        """Transition the controller to the stopped state.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.game._transition_to(GameStopped(self.game))
 
     def tick(self) -> None:
-        """Advance the board by one generation while the game is running."""
+        """Advance the board by one generation while the game is running.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.game.simulation.step()

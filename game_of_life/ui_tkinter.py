@@ -1,3 +1,5 @@
+"""Implement the Game of Life UI with Tkinter."""
+
 import tkinter as tk
 from collections.abc import Callable
 from time import monotonic, sleep
@@ -12,7 +14,14 @@ UI_FRAME_RATE = 60
 
 
 def _tk_color(color: UIColor) -> str:
-    """Convert an RGB UI color to Tk's hexadecimal color notation."""
+    """Convert an RGB UI color to Tk's hexadecimal notation.
+
+    Args:
+        color: UI color to convert.
+
+    Returns:
+        Hexadecimal Tk color string.
+    """
     red, green, blue = color.value
     return f'#{red:02x}{green:02x}{blue:02x}'
 
@@ -21,14 +30,29 @@ class TkinterUIWindow(UIWindow):
     """Own the Tk root window and drawing canvas."""
 
     def __init__(self, width: int, height: int) -> None:
-        """Store the dimensions for the window and its drawing canvas."""
+        """Store the dimensions for the window and its drawing canvas.
+
+        Args:
+            width: Window width in pixels.
+            height: Window height in pixels.
+
+        Returns:
+            None.
+        """
         self.width = width
         self.height = height
         self.root: tk.Tk | None = None
         self.canvas: tk.Canvas | None = None
 
     def setup(self) -> None:
-        """Create and configure the Tk root window and canvas."""
+        """Create and configure the Tk root window and canvas.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.root = tk.Tk()
         self.root.title("Conway's Game of Life")
         self.root.resizable(False, False)
@@ -46,26 +70,60 @@ class TkinterUIWindow(UIWindow):
 
         Deleting canvas items here would invalidate the grid's cached item IDs
         and force every cell to be recreated on each frame.
+
+        Args:
+            None.
+
+        Returns:
+            None.
         """
 
     def set_close_handler(self, handler: Callable[[], None]) -> None:
-        """Register the callback invoked when the window is closed."""
+        """Register the callback invoked when the window is closed.
+
+        Args:
+            handler: Zero-argument callback to invoke on window close.
+
+        Returns:
+            None.
+        """
         self.get_root().protocol('WM_DELETE_WINDOW', handler)
 
     def get_root(self) -> tk.Tk:
-        """Return the configured Tk root or reject use before setup."""
+        """Return the configured Tk root or reject use before setup.
+
+        Args:
+            None.
+
+        Returns:
+            Configured Tk root window.
+        """
         if self.root is None:
             raise RuntimeError("Tkinter window has not been set up")
         return self.root
 
     def get_canvas(self) -> tk.Canvas:
-        """Return the configured canvas or reject use before setup."""
+        """Return the configured canvas or reject use before setup.
+
+        Args:
+            None.
+
+        Returns:
+            Configured Tk canvas.
+        """
         if self.canvas is None:
             raise RuntimeError("Tkinter canvas has not been set up")
         return self.canvas
 
     def close(self) -> None:
-        """Destroy the Tk window and release its widget references."""
+        """Destroy the Tk window and release its widget references.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         if self.root is None:
             return
         try:
@@ -81,7 +139,17 @@ class TkinterUIGrid(UIElement):
     """Render the simulation board on a Tk canvas."""
 
     def __init__(self, n_cells_x: int, n_cells_y: int, cell_width: int, cell_height: int) -> None:
-        """Store the board dimensions and initialize cached cell state."""
+        """Store board dimensions and initialize cached cell state.
+
+        Args:
+            n_cells_x: Number of cells along the board's x-axis.
+            n_cells_y: Number of cells along the board's y-axis.
+            cell_width: Width of each cell in pixels.
+            cell_height: Height of each cell in pixels.
+
+        Returns:
+            None.
+        """
         super().__init__()
         self.n_cells_x = n_cells_x
         self.n_cells_y = n_cells_y
@@ -91,7 +159,15 @@ class TkinterUIGrid(UIElement):
         self._values = np.full((n_cells_x, n_cells_y), -1, dtype=np.int8)
 
     def draw(self, window: TkinterUIWindow, **kwargs: Any) -> None:
-        """Draw changed board cells on the Tk canvas."""
+        """Draw changed board cells on the Tk canvas.
+
+        Args:
+            window: Window providing the canvas.
+            **kwargs: Optional ``board_state`` array to draw.
+
+        Returns:
+            None.
+        """
         canvas = window.get_canvas()
         board_state = kwargs.get('board_state', np.zeros((self.n_cells_x, self.n_cells_y)))
         if not self._cells:
@@ -111,7 +187,14 @@ class TkinterUIGrid(UIElement):
             self._values[x, y] = normalized_value
 
     def _create_cells(self, canvas: tk.Canvas) -> None:
-        """Create the canvas rectangles used to render every board cell."""
+        """Create canvas rectangles for all board cells.
+
+        Args:
+            canvas: Canvas on which to create the cell rectangles.
+
+        Returns:
+            None.
+        """
         for x in range(self.n_cells_x):
             for y in range(self.n_cells_y):
                 left = x * self.cell_width
@@ -132,7 +215,19 @@ class TkinterUIButton(UIElement):
     """Publish a configured event from a native Tk button."""
 
     def __init__(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
-        """Store the button's layout, label, and published event."""
+        """Store the button's layout, label, and published event.
+
+        Args:
+            label: Text displayed on the button.
+            width: Button width in pixels.
+            height: Button height in pixels.
+            x: Button's horizontal position in pixels.
+            y: Button's vertical position in pixels.
+            event: Event published when the button is clicked.
+
+        Returns:
+            None.
+        """
         super().__init__()
         self.label = label
         self.width = width
@@ -143,14 +238,29 @@ class TkinterUIButton(UIElement):
         self.widget: tk.Button | None = None
 
     def draw(self, window: TkinterUIWindow, **kwargs: Any) -> None:
-        """Create and position the native Tk button if does not exist."""
+        """Create and position the native Tk button if it does not exist.
+
+        Args:
+            window: Window providing the Tk root.
+            **kwargs: Unused drawing options.
+
+        Returns:
+            None.
+        """
         if self.widget is not None:
             return
         self.widget = tk.Button(window.get_root(), text=self.label, command=self.on_click)
         self.widget.place(x=self.x, y=self.y, width=self.width, height=self.height)
 
     def on_click(self) -> None:
-        """Publish this button's configured event."""
+        """Publish this button's configured event.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         # TODO: Consider implementing on_click as part of UIElement class
         self.publish(self.event)
 
@@ -161,7 +271,21 @@ class TkinterUISlider(UIElement):
     def __init__(self, x: int, y: int, width: int, height: int,
                  min_value: float, max_value: float,
                  initial_value: float, event: EventType) -> None:
-        """Store the slider's layout, range, value, and published event."""
+        """Store the slider's layout, range, value, and published event.
+
+        Args:
+            x: Slider's horizontal position in pixels.
+            y: Slider's vertical position in pixels.
+            width: Slider width in pixels.
+            height: Slider height in pixels.
+            min_value: Minimum selectable value.
+            max_value: Maximum selectable value.
+            initial_value: Initial slider value.
+            event: Event published when the value changes.
+
+        Returns:
+            None.
+        """
         super().__init__()
         self.x = x
         self.y = y
@@ -175,7 +299,15 @@ class TkinterUISlider(UIElement):
         self.variable: tk.DoubleVar | None = None
 
     def draw(self, window: TkinterUIWindow, **kwargs: Any) -> None:
-        """Create and position the native Tk scale if not exists."""
+        """Create and position the native Tk scale if it does not exist.
+
+        Args:
+            window: Window providing the Tk root.
+            **kwargs: Unused drawing options.
+
+        Returns:
+            None.
+        """
         if self.widget is not None:
             return
         self.variable = tk.DoubleVar(window.get_root(), value=self.value)
@@ -192,7 +324,14 @@ class TkinterUISlider(UIElement):
         self.widget.place(x=self.x, y=self.y, width=self.width, height=self.height + 30)
 
     def _on_change(self, value: str) -> None:
-        """Publish a changed numeric slider value."""
+        """Publish a changed numeric slider value.
+
+        Args:
+            value: New value supplied by the Tk scale.
+
+        Returns:
+            None.
+        """
         new_value = float(value)
         if new_value == self.value:
             return
@@ -205,7 +344,17 @@ class TkinterUI(UI, EventSubscriber):
 
     def __init__(self, screen: TkinterUIWindow, grid: TkinterUIGrid,
                  buttons: list[TkinterUIButton], sliders: list[TkinterUISlider] | None = None) -> None:
-        """Initialize the Tk window, controls, event wiring, and frame clock."""
+        """Initialize the Tk window, controls, event wiring, and frame clock.
+
+        Args:
+            screen: Window wrapper used to display the game.
+            grid: Renderer for the simulation board.
+            buttons: Buttons included in the UI.
+            sliders: Optional sliders included in the UI.
+
+        Returns:
+            None.
+        """
         super().__init__()
         self.screen = screen
         self.screen.setup()
@@ -219,12 +368,26 @@ class TkinterUI(UI, EventSubscriber):
             element.attach(self)
 
     def notify(self, event: Event) -> None:
-        """Forward control events to subscribers of the complete UI."""
+        """Forward control events to subscribers of the complete UI.
+
+        Args:
+            event: Event published by a child control.
+
+        Returns:
+            None.
+        """
         # TODO: Consider implementing notify as part of UIElement class
         self.publish(event.event_type, event.payload)
 
     def render(self, board_state: np.ndarray) -> None:
-        """Draw the current board state and ensure native controls exist."""
+        """Draw the current board and ensure native controls exist.
+
+        Args:
+            board_state: Current simulation board.
+
+        Returns:
+            None.
+        """
         # TODO: Consider implementing part of render as part of UIElement class
         self.screen.clear()
         self.grid.draw(self.screen, board_state=board_state)
@@ -234,7 +397,14 @@ class TkinterUI(UI, EventSubscriber):
             slider.draw(self.screen)
 
     def process_events(self) -> None:
-        """Process pending Tk events and report a closed window."""
+        """Process pending Tk events and report a closed window.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         try:
             root = self.screen.get_root()
             root.update_idletasks()
@@ -243,18 +413,39 @@ class TkinterUI(UI, EventSubscriber):
             self.publish(EventType.UI_QUIT)
 
     def finish_frame(self) -> None:
-        """Delay if necessary to keep UI processing at its frame rate."""
+        """Limit UI processing to the configured frame rate.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         remaining = 1.0 / UI_FRAME_RATE - (monotonic() - self._frame_started_at)
         if remaining > 0:
             sleep(remaining)
         self._frame_started_at = monotonic()
 
     def close(self) -> None:
-        """Close the Tk window and release its resources."""
+        """Close the Tk window and release its resources.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.screen.close()
 
     def _on_close(self) -> None:
-        """Publish the application event for a requested UI close."""
+        """Publish the application event for a requested UI close.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.publish(EventType.UI_QUIT)
 
 
@@ -262,12 +453,26 @@ class TkinterUIBuilder(UIBuilder):
     """Build complete Tkinter UIs while enforcing component construction order."""
 
     def __init__(self) -> None:
-        """Initialize an empty builder ready to start its first product."""
+        """Initialize an empty builder.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         # TODO: Consider implementing __init__ method in the base UIBuilder class
         self._reset()
 
     def _reset(self) -> None:
-        """Discard builder-owned references after a product is returned."""
+        """Clear builder state so it can construct another UI.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         # TODO: Consider implementing _reset method in the base UIBuilder class
         self.screen: TkinterUIWindow | None = None
         self.grid: TkinterUIGrid | None = None
@@ -275,31 +480,82 @@ class TkinterUIBuilder(UIBuilder):
         self.sliders: list[TkinterUISlider] = []
 
     def build_window(self, width: int, height: int) -> None:
-        """Start a product by building its window."""
+        """Start building a UI by creating its window.
+
+        Args:
+            width: Window width in pixels.
+            height: Window height in pixels.
+
+        Returns:
+            None.
+        """
         if self.screen is not None:
             raise UIBuilderError("window has already been built for the current UI")
         self.screen = TkinterUIWindow(width, height)
 
     def build_grid(self, n_cells_x: int, n_cells_y: int, cell_width: int, cell_height: int) -> None:
-        """Build the grid after the product window has been created."""
+        """Build the grid after creating the window.
+
+        Args:
+            n_cells_x: Number of cells along the board's x-axis.
+            n_cells_y: Number of cells along the board's y-axis.
+            cell_width: Width of each cell in pixels.
+            cell_height: Height of each cell in pixels.
+
+        Returns:
+            None.
+        """
         self._require_window()
         if self.grid is not None:
             raise UIBuilderError("grid has already been built for the current UI")
         self.grid = TkinterUIGrid(n_cells_x, n_cells_y, cell_width, cell_height)
 
     def build_button(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
-        """Add a button after the required window and grid are built."""
+        """Add a button to the current UI product.
+
+        Args:
+            label: Text displayed on the button.
+            width: Button width in pixels.
+            height: Button height in pixels.
+            x: Button's horizontal position in pixels.
+            y: Button's vertical position in pixels.
+            event: Event published when the button is clicked.
+
+        Returns:
+            None.
+        """
         self._require_grid()
         self.buttons.append(TkinterUIButton(label, width, height, x, y, event))
 
     def build_slider(self, x: int, y: int, width: int, height: int, min_value: float,
                     max_value: float, initial_value: float, event: EventType) -> None:
-        """Add a slider after the required window and grid are built."""
+        """Add a slider to the current UI product.
+
+        Args:
+            x: Slider's horizontal position in pixels.
+            y: Slider's vertical position in pixels.
+            width: Slider width in pixels.
+            height: Slider height in pixels.
+            min_value: Minimum selectable value.
+            max_value: Maximum selectable value.
+            initial_value: Initial slider value.
+            event: Event published when the value changes.
+
+        Returns:
+            None.
+        """
         self._require_grid()
         self.sliders.append(TkinterUISlider(x, y, width, height, min_value, max_value, initial_value, event))
 
     def get_ui(self) -> TkinterUI:
-        """Return a complete UI and reset this builder for the next product."""
+        """Return the completed UI and reset the builder.
+
+        Args:
+            None.
+
+        Returns:
+            The completed Tkinter UI.
+        """
         screen = self._require_window()
         grid = self._require_grid()
         ui = TkinterUI(screen, grid, self.buttons, self.sliders)
@@ -307,13 +563,27 @@ class TkinterUIBuilder(UIBuilder):
         return ui
 
     def _require_window(self) -> TkinterUIWindow:
-        """Return the current window or reject an out-of-order operation."""
+        """Return the current window or reject an out-of-order operation.
+
+        Args:
+            None.
+
+        Returns:
+            The window built for the current UI product.
+        """
         if self.screen is None:
             raise UIBuilderError("build the window before other UI components")
         return self.screen
 
     def _require_grid(self) -> TkinterUIGrid:
-        """Return the current grid or reject an incomplete product."""
+        """Return the current grid or reject an incomplete product.
+
+        Args:
+            None.
+
+        Returns:
+            The grid built for the current UI product.
+        """
         self._require_window()
         if self.grid is None:
             raise UIBuilderError("build the grid before controls or product retrieval")

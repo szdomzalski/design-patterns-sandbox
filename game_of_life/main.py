@@ -1,3 +1,5 @@
+"""Compose and launch the Game of Life application."""
+
 import argparse
 import os
 import sys
@@ -17,9 +19,12 @@ DEFAULT_CONFIG_PATH = os.path.join(
 def compose_game(config_path: str, clock: Clock) -> GameController:
     """Compose a game controller from configuration and injected adapters.
 
-    :param config_path: Path to any configuration format supported by the loader factory.
-    :param clock: Monotonic simulation clock implementation.
-    :return: A fully wired controller that has not started its run loop.
+    Args:
+        config_path: Path to a configuration format supported by the loader factory.
+        clock: Monotonic simulation clock implementation.
+
+    Returns:
+        A fully wired controller that has not started its run loop.
     """
     config_loader = ConfigLoaderFactory.create(config_path)
     application_config = config_loader.get_config()
@@ -51,7 +56,14 @@ def compose_game(config_path: str, clock: Clock) -> GameController:
 
 
 def main() -> None:
-    """Compose the application and run its controller loop."""
+    """Parse command-line options, compose the application, and run it.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+    """
     # Parse command-line arguments for config path
     parser = argparse.ArgumentParser(description="Game of Life Application")
     parser.add_argument('--config', type=str, default=None,

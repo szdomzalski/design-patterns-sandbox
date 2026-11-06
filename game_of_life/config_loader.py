@@ -1,3 +1,5 @@
+"""Load, normalize, and validate configuration for the Game of Life application."""
+
 import json
 import math
 import os
@@ -24,19 +26,43 @@ class ConfigError(Exception):
 
 
 def _require_positive_int(value: int, field_name: str) -> None:
-    """Require a non-Boolean integer greater than zero for a named field."""
+    """Require a named value to be a positive integer.
+
+    Args:
+        value: The value to validate; booleans are not accepted as integers.
+        field_name: The configuration field name used in any error message.
+
+    Returns:
+        None.
+    """
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ConfigError(f"{field_name} must be a positive integer")
 
 
 def _require_non_negative_int(value: int, field_name: str) -> None:
-    """Require a non-Boolean integer greater than or equal to zero for a named field."""
+    """Require a named value to be a non-negative integer.
+
+    Args:
+        value: The value to validate; booleans are not accepted as integers.
+        field_name: The configuration field name used in any error message.
+
+    Returns:
+        None.
+    """
     if not isinstance(value, int) or isinstance(value, bool) or value < 0:
         raise ConfigError(f"{field_name} must be a non-negative integer")
 
 
 def _require_number(value: float, field_name: str) -> None:
-    """Require a non-Boolean integer or floating-point value for a named field."""
+    """Require a named value to be a finite number.
+
+    Args:
+        value: The value to validate; booleans are not accepted as numbers.
+        field_name: The configuration field name used in any error message.
+
+    Returns:
+        None.
+    """
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ConfigError(f"{field_name} must be a number")
     if not math.isfinite(value):
@@ -55,7 +81,14 @@ class SimulationSpec:
     ruleset: str
 
     def __post_init__(self) -> None:
-        """Validate all simulation startup settings after field assignment."""
+        """Validate simulation startup settings after field assignment.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         _require_positive_int(self.cells_x, "simulation.cells_x")
         _require_positive_int(self.cells_y, "simulation.cells_y")
         _require_number(self.alive_probability, "simulation.alive_probability")
@@ -75,7 +108,14 @@ class WindowSpec:
     height: int
 
     def __post_init__(self) -> None:
-        """Validate dimensions immediately after dataclass initialization."""
+        """Validate window dimensions after field assignment.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         # A dataclass-generated __init__ calls __post_init__ automatically
         # after assigning fields. Raising here prevents an invalid frozen spec
         # from ever being returned to the caller.
@@ -91,12 +131,27 @@ class GridSpec:
     height: int
 
     def __post_init__(self) -> None:
-        """Validate grid dimensions after dataclass field assignment."""
+        """Validate grid dimensions after field assignment.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         _require_positive_int(self.width, "grid.width")
         _require_positive_int(self.height, "grid.height")
 
     def cell_size(self, n_cells_x: int, n_cells_y: int) -> tuple[int, int]:
-        """Return exact cell dimensions for the requested board shape."""
+        """Return exact cell dimensions for a requested board shape.
+
+        Args:
+            n_cells_x: Number of cells along the board's x-axis.
+            n_cells_y: Number of cells along the board's y-axis.
+
+        Returns:
+            Cell width and height in pixels.
+        """
         _require_positive_int(n_cells_x, "n_cells_x")
         _require_positive_int(n_cells_y, "n_cells_y")
         if self.width % n_cells_x != 0 or self.height % n_cells_y != 0:
@@ -116,7 +171,14 @@ class ButtonSpec:
     event: EventType
 
     def __post_init__(self) -> None:
-        """Validate button content, geometry, and event after initialization."""
+        """Validate button content, geometry, and event after field assignment.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         if not isinstance(self.label, str) or not self.label.strip():
             raise ConfigError("button.label must be a non-empty string")
         _require_positive_int(self.width, "button.width")
@@ -141,7 +203,14 @@ class SliderSpec:
     event: EventType
 
     def __post_init__(self) -> None:
-        """Validate slider geometry, value range, and event after initialization."""
+        """Validate slider geometry, value range, and event after field assignment.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         _require_non_negative_int(self.x, "slider.x")
         _require_non_negative_int(self.y, "slider.y")
         _require_positive_int(self.width, "slider.width")
@@ -170,7 +239,14 @@ class UIConfig:
     engine: str = 'pygame'
 
     def __post_init__(self) -> None:
-        """Validate relationships between the window, grid, and controls."""
+        """Validate relationships between the window, grid, and controls.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         if not isinstance(self.engine, str) or not self.engine.strip():
             raise ConfigError("engine must be a non-empty string")
         if self.grid.width > self.window.width or self.grid.height > self.window.height:
@@ -188,7 +264,14 @@ class ApplicationConfig:
     ui: UIConfig
 
     def __post_init__(self) -> None:
-        """Validate relationships between simulation and UI settings."""
+        """Validate relationships between simulation and UI settings.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
         self.ui.grid.cell_size(self.simulation.cells_x, self.simulation.cells_y)
 
 
@@ -197,7 +280,14 @@ class ApplicationConfigAdapter:
 
     @staticmethod
     def from_mapping(data: Mapping[str, Any]) -> ApplicationConfig:
-        """Convert parsed configuration data to validated application settings."""
+        """Convert parsed configuration data to validated application settings.
+
+        Args:
+            data: Format-independent configuration mapping.
+
+        Returns:
+            Validated application configuration.
+        """
         if not isinstance(data, Mapping):
             raise ConfigError("configuration root must be a mapping")
         simulation = data['simulation']
@@ -239,7 +329,15 @@ class ApplicationConfigAdapter:
 
     @staticmethod
     def _slider_spec(slider: Mapping[str, Any], simulation: SimulationSpec) -> SliderSpec:
-        """Adapt a slider while deriving only simulation-speed initialization."""
+        """Adapt a slider mapping to a validated specification.
+
+        Args:
+            slider: Mapping containing the slider's geometry, range, and event.
+            simulation: Validated simulation settings used to initialize speed sliders.
+
+        Returns:
+            Validated slider specification.
+        """
         event = ApplicationConfigAdapter._event_type(slider['event'])
         if event is EventType.SPEED_CHANGE:
             # Simulation speed is the single source of truth for speed controls.
@@ -261,7 +359,14 @@ class ApplicationConfigAdapter:
 
     @staticmethod
     def _event_type(event_name: str) -> EventType:
-        """Convert a serialized event name to its EventType member."""
+        """Convert a serialized event name to its enum member.
+
+        Args:
+            event_name: Name of an :class:`EventType` member.
+
+        Returns:
+            The corresponding event type.
+        """
         try:
             return EventType[event_name]
         except (KeyError, TypeError) as error:
@@ -272,10 +377,25 @@ class ConfigLoader(ABC):
     """Load one configuration syntax and adapt it to application settings."""
 
     def __init__(self, path: str) -> None:
+        """Store the source file path.
+
+        Args:
+            path: Path to the configuration file.
+
+        Returns:
+            None.
+        """
         self._path = path
 
     def get_config(self) -> ApplicationConfig:
-        """Read, parse, and adapt the configured source file."""
+        """Read, parse, and adapt the configured source file.
+
+        Args:
+            None.
+
+        Returns:
+            Validated application configuration.
+        """
         try:
             return ApplicationConfigAdapter.from_mapping(self._read_mapping())
         except ConfigError:
@@ -285,13 +405,28 @@ class ConfigLoader(ABC):
 
     @abstractmethod
     def _read_mapping(self) -> Mapping[str, Any]:
-        """Parse the source format into the shared mapping representation."""
+        """Parse the source format into the shared mapping representation.
+
+        Args:
+            None.
+
+        Returns:
+            Parsed configuration mapping.
+        """
 
 
 class JSONConfigLoader(ConfigLoader):
     """Adapt a JSON configuration file to UI specifications."""
 
     def _read_mapping(self) -> Mapping[str, Any]:
+        """Read and parse a JSON configuration file.
+
+        Args:
+            None.
+
+        Returns:
+            Parsed configuration mapping.
+        """
         with open(self._path, 'r', encoding='utf-8') as config_file:
             return json.load(config_file)
 
@@ -300,6 +435,14 @@ class YAMLConfigLoader(ConfigLoader):
     """Adapt a YAML configuration file to UI specifications."""
 
     def _read_mapping(self) -> Mapping[str, Any]:
+        """Read and parse a YAML configuration file.
+
+        Args:
+            None.
+
+        Returns:
+            Parsed configuration mapping.
+        """
         with open(self._path, 'r', encoding='utf-8') as config_file:
             return yaml.safe_load(config_file)
 
@@ -308,6 +451,14 @@ class TOMLConfigLoader(ConfigLoader):
     """Adapt a TOML configuration file to UI specifications."""
 
     def _read_mapping(self) -> Mapping[str, Any]:
+        """Read and parse a TOML configuration file.
+
+        Args:
+            None.
+
+        Returns:
+            Parsed configuration mapping.
+        """
         with open(self._path, 'rb') as config_file:
             return tomllib.load(config_file)
 
@@ -346,6 +497,14 @@ class XMLConfigLoader(ConfigLoader):
     }
 
     def _read_mapping(self) -> Mapping[str, Any]:
+        """Parse XML configuration into the shared mapping representation.
+
+        Args:
+            None.
+
+        Returns:
+            Configuration mapping with converted XML attribute values.
+        """
         root = ET.parse(self._path).getroot()
         if root.tag != 'application':
             raise ConfigError("XML configuration root must be <application>")
@@ -370,7 +529,15 @@ class XMLConfigLoader(ConfigLoader):
 
     @staticmethod
     def _required_child(root: ET.Element, tag: str) -> ET.Element:
-        """Return a required direct child or report the missing XML element."""
+        """Return a required direct child of an XML element.
+
+        Args:
+            root: Element whose direct child is required.
+            tag: Tag name of the required child.
+
+        Returns:
+            The matching child element.
+        """
         element = root.find(tag)
         if element is None:
             raise ConfigError(f"XML configuration requires <{tag}>")
@@ -380,14 +547,29 @@ class XMLConfigLoader(ConfigLoader):
     def _convert_attributes(
             element: ET.Element,
             fields: Mapping[str, Callable[[str], Any]]) -> dict[str, Any]:
-        """Convert XML string attributes to the shared mapping value types."""
+        """Convert selected XML string attributes to typed values.
+
+        Args:
+            element: XML element containing the attributes.
+            fields: Attribute names and their conversion functions.
+
+        Returns:
+            Mapping of converted attribute names to values.
+        """
         try:
             return {name: convert(element.attrib[name]) for name, convert in fields.items()}
         except (KeyError, ValueError) as error:
             raise ConfigError(f"Invalid <{element.tag}> attributes: {error}") from error
 
     def _convert_slider_attributes(self, element: ET.Element) -> dict[str, Any]:
-        """Convert required slider attributes and preserve an optional initial value."""
+        """Convert slider attributes and preserve an optional initial value.
+
+        Args:
+            element: XML slider element to convert.
+
+        Returns:
+            Mapping of converted slider attributes.
+        """
         slider = self._convert_attributes(element, self._slider_fields)
         if 'initial_value' in element.attrib:
             try:
@@ -398,10 +580,12 @@ class XMLConfigLoader(ConfigLoader):
 
 
 class ConfigLoaderFactoryError(ConfigError):
-    pass
+    """Report an unsupported or missing configuration file extension."""
 
 
 class ConfigLoaderFactory:
+    """Create configuration loaders based on file extensions."""
+
     _loaders = {  # noqa: RUF012
         '.json': JSONConfigLoader,
         '.toml': TOMLConfigLoader,
@@ -412,6 +596,14 @@ class ConfigLoaderFactory:
 
     @staticmethod
     def create(path: str) -> ConfigLoader:
+        """Create a loader for the configuration file format.
+
+        Args:
+            path: Path to a supported configuration file.
+
+        Returns:
+            A loader configured to read the given file.
+        """
         _, ext = os.path.splitext(path)
         ext = ext.lower()
         if not ext or ext not in ConfigLoaderFactory._loaders:

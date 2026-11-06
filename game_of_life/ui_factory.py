@@ -1,3 +1,5 @@
+"""Select UI builders for the configured UI engine."""
+
 from importlib import import_module
 from typing import cast
 
@@ -21,7 +23,14 @@ class UIBuilderFactory:
 
     @classmethod
     def create(cls, engine: str) -> UIBuilder:
-        """Create the builder registered for the configured UI engine."""
+        """Create the builder registered for the configured UI engine.
+
+        Args:
+            engine: Registered UI engine name.
+
+        Returns:
+            A new builder for the selected UI engine.
+        """
         try:
             module_name, builder_name = cls._builders[engine]
         except KeyError as error:
