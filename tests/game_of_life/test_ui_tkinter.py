@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 from game_of_life.event_handling import Event, EventSubscriber, EventType
-from game_of_life.ui import UIBuilderError, UIElement
+from game_of_life.ui import UIBuilderError, UIButton, UIElement
 from game_of_life.ui_tkinter import (
-    TkinterUIButton,
     TkinterUI,
     TkinterUIBuilder,
+    TkinterUIButton,
     TkinterUIGrid,
     TkinterUISlider,
     TkinterUIWindow,
@@ -29,6 +29,8 @@ def disable_window_setup(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_ui_forwards_events_from_its_controls(monkeypatch: pytest.MonkeyPatch) -> None:
     disable_window_setup(monkeypatch)
     button = TkinterUIButton("Start", 100, 20, 0, 0, EventType.UI_START)
+    assert isinstance(button, UIButton)
+
     ui = TkinterUI(
         TkinterUIWindow(100, 100),
         TkinterUIGrid(n_cells_x=1, n_cells_y=1, cell_width=1, cell_height=1),

@@ -2,9 +2,31 @@ from typing import Any
 
 import pytest
 
-from game_of_life.config_loader import ButtonSpec, ConfigError, GridSpec, SliderSpec, UIConfig, WindowSpec
-from game_of_life.event_handling import EventType
-from game_of_life.ui import UI, UIBuilder, UIDirector
+from game_of_life.config_loader import (
+    ButtonSpec,
+    ConfigError,
+    GridSpec,
+    SliderSpec,
+    UIConfig,
+    WindowSpec,
+)
+from game_of_life.event_handling import Event, EventSubscriber, EventType
+from game_of_life.ui import UI, UIBuilder, UIButton, UIDirector, UIWindow
+
+
+class StubUIButton(UIButton):
+    """Provide a minimal concrete button for testing shared button behavior."""
+
+    def draw(self, window: UIWindow, **kwargs: Any) -> None:
+        pass
+
+
+class RecordingSubscriber(EventSubscriber):
+    def __init__(self) -> None:
+        self.events: list[Event] = []
+
+    def notify(self, event: Event) -> None:
+        self.events.append(event)
 
 
 class NullUI(UI):
@@ -54,6 +76,16 @@ class RecordingBuilder(UIBuilder):
     def get_ui(self) -> UI:
         self.calls.append(("get_ui",))
         return self.ui
+
+
+def test_button_publishes_its_configured_event() -> None:
+    button = StubUIButton(EventType.UI_START)
+    subscriber = RecordingSubscriber()
+    button.attach(subscriber)
+
+    button.on_click()
+
+    assert subscriber.events == [Event(EventType.UI_START)]
 
 
 def test_director_builds_ui_from_typed_specs() -> None:

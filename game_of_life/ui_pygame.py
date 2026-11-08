@@ -6,7 +6,7 @@ import numpy as np
 import pygame
 
 from .event_handling import Event, EventSubscriber, EventType
-from .ui import UI, UIBuilder, UIBuilderError, UIColor, UIElement, UIWindow
+from .ui import UI, UIBuilder, UIBuilderError, UIButton, UIColor, UIElement, UIWindow
 
 UI_FRAME_RATE = 60
 
@@ -102,7 +102,7 @@ class PygameUIGrid(UIElement):
                              width=1 - min(value, 1))
 
 
-class PygameUIButton(UIElement):
+class PygameUIButton(UIButton):
     """Draw a button and publish its configured event when clicked."""
 
     def __init__(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
@@ -119,13 +119,12 @@ class PygameUIButton(UIElement):
         Returns:
             None.
         """
-        super().__init__()
+        super().__init__(event)
         self.label = label
         self.width = width
         self.height = height
         self.x = x
         self.y = y
-        self.event = event
 
     def draw(self, window: PygameUIWindow, **kwargs: Any) -> None:
         """Draw the button on a Pygame window.
@@ -155,17 +154,6 @@ class PygameUIButton(UIElement):
             Whether the point is inside the button.
         """
         return self.x <= click_x <= self.x + self.width and self.y <= click_y <= self.y + self.height
-
-    def on_click(self) -> None:
-        """Publish the button's configured event.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-        """
-        self.publish(self.event)
 
 
 class PygameUISlider(UIElement):

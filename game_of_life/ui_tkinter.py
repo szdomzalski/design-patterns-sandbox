@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 
 from .event_handling import Event, EventSubscriber, EventType
-from .ui import UI, UIBuilder, UIBuilderError, UIColor, UIElement, UIWindow
+from .ui import UI, UIBuilder, UIBuilderError, UIButton, UIColor, UIElement, UIWindow
 
 UI_FRAME_RATE = 60
 
@@ -211,7 +211,7 @@ class TkinterUIGrid(UIElement):
                 self._cells.append(tmp_rect)
 
 
-class TkinterUIButton(UIElement):
+class TkinterUIButton(UIButton):
     """Publish a configured event from a native Tk button."""
 
     def __init__(self, label: str, width: int, height: int, x: int, y: int, event: EventType) -> None:
@@ -228,13 +228,12 @@ class TkinterUIButton(UIElement):
         Returns:
             None.
         """
-        super().__init__()
+        super().__init__(event)
         self.label = label
         self.width = width
         self.height = height
         self.x = x
         self.y = y
-        self.event = event
         self.widget: tk.Button | None = None
 
     def draw(self, window: TkinterUIWindow, **kwargs: Any) -> None:
@@ -251,18 +250,6 @@ class TkinterUIButton(UIElement):
             return
         self.widget = tk.Button(window.get_root(), text=self.label, command=self.on_click)
         self.widget.place(x=self.x, y=self.y, width=self.width, height=self.height)
-
-    def on_click(self) -> None:
-        """Publish this button's configured event.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-        """
-        # TODO: Consider implementing on_click as part of UIElement class
-        self.publish(self.event)
 
 
 class TkinterUISlider(UIElement):

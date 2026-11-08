@@ -60,6 +60,33 @@ class UIElement(EventPublisher, ABC):
         """
 
 
+class UIButton(UIElement):
+    """Define the interface for UI buttons"""
+
+    def __init__(self, event: EventType) -> None:
+        """Initialize button with its assigned click event.
+
+        Args:
+            event (EventType): event to publish on button click.
+
+        Returns:
+            None.
+        """
+        super().__init__()
+        self.event = event
+
+    def on_click(self) -> None:
+        """Publish button's configured event.
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        self.publish(self.event)
+
+
 class UI(EventPublisher, ABC):
     """Define input, rendering, frame pacing, and shutdown operations for a UI."""
 

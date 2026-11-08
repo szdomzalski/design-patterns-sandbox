@@ -1,11 +1,11 @@
 import pytest
 
 from game_of_life.event_handling import Event, EventSubscriber, EventType
-from game_of_life.ui import UIBuilderError
+from game_of_life.ui import UIBuilderError, UIButton
 from game_of_life.ui_pygame import (
-    PygameUIButton,
     PygameUI,
     PygameUIBuilder,
+    PygameUIButton,
     PygameUIGrid,
     PygameUISlider,
     PygameUIWindow,
@@ -47,6 +47,8 @@ def test_button_has_no_hidden_application_subscriber() -> None:
 
 def test_ui_forwards_events_from_its_controls() -> None:
     button = PygameUIButton("Start", 100, 20, 0, 0, EventType.UI_START)
+    assert isinstance(button, UIButton)
+
     ui = create_ui(buttons=[button])
     subscriber = RecordingSubscriber()
     ui.attach(subscriber)
